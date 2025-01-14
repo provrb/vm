@@ -18,19 +18,27 @@ void PrintStack();
 ///
 /// Depending on an opcode, perform different functions
 typedef enum {
+    OP_NOP = 0,
     OP_PUSH,
     OP_POP,
     OP_MOV,
+    OP_SWAP,
+    
     OP_ADD,
     OP_SUB,
     OP_MUL,
     OP_DIV,
     OP_MOD,
+    
     OP_NEG,
+
     OP_ANDB,
     OP_ORB,
     OP_NOTB,
     OP_XORB,
+    
+    OP_PEEK,
+    OP_DUP,
     OP_CLR,
     OP_SIZE,
     OP_PRNT

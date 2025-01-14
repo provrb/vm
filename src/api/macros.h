@@ -12,6 +12,7 @@
 #define INST_POP()     {.operation = OP_POP}
 #define INST_MOV(a, b) {.operation = OP_MOV, .data.registers.src = a, .data.registers.dest = b}
 #define INST_PRNT()    {.operation = OP_PRNT}
+#define INST_SWAP()    {.operation = OP_SWAP}
 
 #define INST_ADD()     {.operation = OP_ADD}
 #define INST_DIV()     {.operation = OP_DIV}
@@ -19,11 +20,12 @@
 #define INST_SUB()     {.operation = OP_SUB}
 #define INST_MUL()     {.operation = OP_MUL}
 
+#define INST_DUP()     {.operation = OP_DUP}
 #define INST_CLR()     {.operation = OP_CLR}
 #define INST_SIZE()    {.operation = OP_SIZE}
 #define INST_NEG()     {.operation = OP_NEG}
 
-#define INST_OR()      {.operation = OP_ORB}
-#define INST_XOR()     {.operation = OP_XORB}
-#define INST_AND()     {.operation = OP_ANDB}
-#define INST_NOT()     {.operation = OP_NOTB}
+#define INST_ORB()     {.operation = OP_ORB}
+#define INST_XORB()    {.operation = OP_XORB}
+#define INST_ANDB()    {.operation = OP_ANDB}
+#define INST_NOTB()    {.operation = OP_NOTB}

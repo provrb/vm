@@ -8,8 +8,7 @@
 Instruction program[] = {    
     INST_PUSH(4),
     INST_PUSH(3),
-    INST_OR(),
-
+    INST_ORB(),
     INST_PRNT(),
 };
 
@@ -60,12 +59,24 @@ void RunInstructions() {
     for (unsigned int i = 0; i < PROGRAM_SIZE; i++) {
         Instruction inst = program[i];
         switch ( inst.operation ) {
+        case OP_NOP:
+            break;
+        case OP_SWAP: {
+            int first = Pop();
+            int second = Pop();
+            Push(second);
+            Push(first);
+            break;
+        }
         case OP_MUL: {
             int a = Pop();
             int b = Pop();
             Push(a * b);
             break;
         }
+        case OP_DUP:
+            Push(stack[stackSize-1]);
+            break;
         case OP_ANDB: {
             int b = Pop();
             int a = Pop();
@@ -98,9 +109,11 @@ void RunInstructions() {
         case OP_PUSH:
             Push(inst.data.value);
             break;
-        case OP_POP: {
-            int a = Pop();
-            printf("Popped: %d\n", a);
+        case OP_POP:
+            Pop();
+            break;
+        case OP_PEEK: {
+            // int a = stack[stackSize-1];
             break;
         }
         case OP_ADD: {
@@ -127,10 +140,9 @@ void RunInstructions() {
             Push(a % b);
             break;
         }
-        case OP_MOV: {
+        case OP_MOV:
             Move(inst.data.registers.src, inst.data.registers.dest);
             break;
-        }
         case OP_SUB: {
             int b = Pop();
             int a = Pop();
