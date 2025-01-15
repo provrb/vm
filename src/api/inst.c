@@ -61,6 +61,16 @@ void RunInstructions() {
         switch ( inst.operation ) {
         case OP_NOP:
             break;
+        case OP_SHL: {
+            int val = Pop();
+            Push(val << inst.data.value);
+            break;
+        }
+        case OP_SHR: {
+            int val = Pop();
+            Push(val >> inst.data.value);
+            break;
+        }
         case OP_SWAP: {
             int first = Pop();
             int second = Pop();
@@ -112,10 +122,6 @@ void RunInstructions() {
         case OP_POP:
             Pop();
             break;
-        case OP_PEEK: {
-            // int a = stack[stackSize-1];
-            break;
-        }
         case OP_ADD: {
             int a = Pop();
             int b = Pop();

@@ -29,3 +29,5 @@
 #define INST_XORB()    {.operation = OP_XORB}
 #define INST_ANDB()    {.operation = OP_ANDB}
 #define INST_NOTB()    {.operation = OP_NOTB}
+#define INST_SHL(a)    {.operation = OP_SHL, .value = a}
+#define INST_SHR(a)    {.operation = OP_SHR, .value = a}

@@ -36,8 +36,9 @@ typedef enum {
     OP_ORB,
     OP_NOTB,
     OP_XORB,
-    
-    OP_PEEK,
+    OP_SHL,
+    OP_SHR,
+
     OP_DUP,
     OP_CLR,
     OP_SIZE,
