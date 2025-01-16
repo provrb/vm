@@ -50,10 +50,11 @@ void PrintStack(Machine* machine) {
 void RunInstructions(Machine* machine) {
     Instruction* instructions = (Instruction*)machine->program;
     if ( !instructions ) {
+        fprintf(stderr, "Panic: Instructions invalid!\n");
         return;
     }
-    
-    for (unsigned int i = 0; i < sizeof(instructions); i++) { 
+
+    for (unsigned int i = 0; i < machine->programSize; i++) { 
         Instruction inst = instructions[i];
 
         switch ( inst.operation ) {

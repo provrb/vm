@@ -13,7 +13,7 @@
 
 #define INST_PUSH(a)   {.operation = OP_PUSH, .data.value = a}
 #define INST_POP()     {.operation = OP_POP}
-#define INST_MOV(a, b) {.operation = OP_MOV, .data.registers.src = a, .data.registers.dest = b}
+#define INST_MOV(source, destination) {.operation = OP_MOV, .data.registers.src = source, .data.registers.dest = destination}
 #define INST_PRNT()    {.operation = OP_PRNT}
 #define INST_SWAP()    {.operation = OP_SWAP}
 

@@ -7,8 +7,10 @@ typedef struct {
     int stackSize;
     int stack[STACK_CAPACITY];
     void* program; // this should be an array of Instruction
+    int programSize;
 } Machine;
 
-Machine* NewMachineWithInstructions(void* ins);
+Machine* NewWithInstructions(void* ins);
+void Reset(Machine* m);
 
 #endif

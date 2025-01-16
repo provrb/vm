@@ -7,24 +7,21 @@
 #include "../src/api/machine.h"
 #include "../src/api/macros.h"
 
-void Reset(Machine* m) {
-    int empty[1024];
-    m->stackSize = 0;
-    memcpy(m->stack, empty, sizeof(empty));
-}
-
 int main() {
 
     Machine* machine = malloc(sizeof(Machine));
+    machine->stackSize = 0;
+    
     {
         // Push test
-        Instruction p[] = {
+        Instruction a[] = {
             INST_PUSH(3),
             INST_PUSH(2),
             INST_PUSH(7),
         };
 
-        machine->program = p;
+        machine->program = a;
+        machine->programSize = sizeof(a) / sizeof(Instruction);
 
         RunInstructions(machine);
         assert( (machine->stack[0] == 3 && machine->stack[1] == 2 && machine->stack[2] == 7 ) && "Test failed for PUSH instruction." );
@@ -35,21 +32,63 @@ int main() {
 
     {
         // Pop test
-        Instruction p[] = {
+        Instruction b[] = {
             INST_PUSH(3),
             INST_POP(),
             INST_PUSH(9),
         };
-        machine->program = p;
+
+        machine->program = b;
+        machine->programSize = sizeof(b) / sizeof(Instruction);
+        
         RunInstructions(machine);
         assert(machine->stack[0] == 9 && "Test failed for POP instruction.");
     }
 
     printf("POP test passed.\n");
     Reset(machine);
+    
     {
-        
+        // Move test
+        Instruction p[] = {
+            INST_PUSH(1),
+            INST_PUSH(2),
+            INST_PUSH(3),
+            INST_PUSH(4),
+            INST_MOV(3, 2),
+        };
+
+        machine->program = p;
+        machine->programSize = sizeof(p) / sizeof(Instruction);
+
+        RunInstructions(machine);
+        assert(machine->stack[2] == 4 && "Test failed for MOV instruction.");
     }
+
+    printf("MOV test passed.\n");
+    Reset(machine);
+
+    {
+        // Clear test
+        Instruction p[] = {
+            INST_PUSH(1),
+            INST_PUSH(2),
+            INST_PUSH(3),
+            INST_PUSH(4),
+            INST_CLR(),
+        };
+
+        machine->program = p;
+        machine->programSize = sizeof(p) / sizeof(Instruction);
+
+        RunInstructions(machine);
+        assert(machine->stackSize == 0 && "Test failed for CLR instruction.");
+    }
+
+    printf("CLR test passed.\n");
+    Reset(machine);
+
+    free(machine);
 
     printf("All tests passed.\n");
     return 0;

@@ -13,7 +13,10 @@ int main() {
         INST_PRNT(),
     };
 
-    Machine* machine = NewMachineWithInstructions(p);
+    Machine* machine = malloc(sizeof(Machine));
+    machine->stackSize = 0;
+    machine->program = p;
+    machine->programSize = sizeof(p) / sizeof(Instruction);
 
     RunInstructions(machine);
 
