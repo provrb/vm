@@ -1,168 +1,160 @@
 #include "inst.h"
-#include "stack.h"
 #include "macros.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
-Instruction program[] = {    
-    INST_PUSH(4),
-    INST_PUSH(3),
-    INST_ORB(),
-    INST_PRNT(),
-};
-
-void Move(int src, int dest) {
-    if ( stackSize <= src || dest < 0 || src < 0 || stackSize <= dest ) {
+void Move(Machine* machine, int src, int dest) {
+    if ( machine->stackSize <= src || dest < 0 || src < 0 || machine->stackSize <= dest ) {
         fprintf(stderr, "Trying to move value from %d to %d. Out-of-bounds.\n", src, dest);
         exit(1);
     }
-    stack[dest] = stack[src];
+    machine->stack[dest] = machine->stack[src];
 }
 
-void Push(int value) {
-    if ( stackSize >= STACK_CAPACITY ) {
+void Push(Machine* machine, int value) {
+    if ( machine->stackSize >= STACK_CAPACITY ) {
         fprintf(stderr, "Stack overflow when trying to push value to stack: %d\n", value);
         exit(1);
     }
 
-    stack[stackSize++] = value;
+    machine->stack[machine->stackSize++] = value;
 }
 
-int Pop() {
-    if ( stackSize <= 0 ) {
+int Pop(Machine* machine) {
+    if ( machine->stackSize <= 0 ) {
         fprintf(stderr, "Stack underflow when trying to pop from stack.\n");
         exit(1);
     }
 
-    return stack[--stackSize];
+    return machine->stack[--machine->stackSize];
 }
 
-void ClearStack() {
-    if (stackSize == 0) return;
+void ClearStack(Machine* machine) {
+    if (machine->stackSize == 0) return;
 
-    int tempSize = stackSize; // need to make a temp copy because stackSize changes as we iterate
+    int tempSize = machine->stackSize; // need to make a temp copy because stackSize changes as we iterate
     for ( int i = 0; i < tempSize; i++ ) {
-        Pop();
+        Pop(machine);
     } 
 }
 
-void PrintStack() {
+void PrintStack(Machine* machine) {
     printf("--- Stack Start ---\n");
-    for ( int i = stackSize-1; i >= 0; i-- ) {
-        printf("%d\n", stack[i]);
+    for ( int i = machine->stackSize-1; i >= 0; i-- ) {
+        printf("%d\n", machine->stack[i]);
     }
     printf("--- Stack End   ---\n");
 }
 
-void RunInstructions() {
-    for (unsigned int i = 0; i < PROGRAM_SIZE; i++) {
-        Instruction inst = program[i];
+void RunInstructions(Machine* machine) {
+    for (unsigned int i = 0; i < sizeof(machine->program); i++) { 
+        Instruction inst = machine->program[i];
         switch ( inst.operation ) {
         case OP_NOP:
             break;
         case OP_SHL: {
-            int val = Pop();
-            Push(val << inst.data.value);
+            int val = Pop(machine);
+            Push(machine, val << inst.data.value);
             break;
         }
         case OP_SHR: {
-            int val = Pop();
-            Push(val >> inst.data.value);
+            int val = Pop(machine);
+            Push(machine, val >> inst.data.value);
             break;
         }
         case OP_SWAP: {
-            int first = Pop();
-            int second = Pop();
-            Push(second);
-            Push(first);
+            int first = Pop(machine);
+            int second = Pop(machine);
+            Push(machine, second);
+            Push(machine, first);
             break;
         }
         case OP_MUL: {
-            int a = Pop();
-            int b = Pop();
-            Push(a * b);
+            int a = Pop(machine);
+            int b = Pop(machine);
+            Push(machine, a * b);
             break;
         }
         case OP_DUP:
-            Push(stack[stackSize-1]);
+            Push(machine, machine->stack[machine->stackSize-1]);
             break;
         case OP_ANDB: {
-            int b = Pop();
-            int a = Pop();
-            Push(a & b);
+            int b = Pop(machine);
+            int a = Pop(machine);
+            Push(machine, a & b);
             break;
         }
         case OP_XORB: {
-            int b = Pop();
-            int a = Pop();
-            Push(a ^ b);
+            int b = Pop(machine);
+            int a = Pop(machine);
+            Push(machine, a ^ b);
             break;
         }
         case OP_NOTB: {
-            int a = Pop();
-            Push(~a);
+            int a = Pop(machine);
+            Push(machine, ~a);
             break;
         }
         case OP_ORB: {
-            int b = Pop();
-            int a = Pop();
-            Push(a | b);
+            int b = Pop(machine);
+            int a = Pop(machine);
+            Push(machine, a | b);
             break;
         }
         case OP_NEG: {
-            int val = Pop();
+            int val = Pop(machine);
             val *= -1;
-            Push(val);
+            Push(machine, val);
             break;
         }
         case OP_PUSH:
-            Push(inst.data.value);
+            Push(machine, inst.data.value);
             break;
         case OP_POP:
-            Pop();
+            Pop(machine);
             break;
         case OP_ADD: {
-            int a = Pop();
-            int b = Pop();
-            Push(a + b);
+            int a = Pop(machine);
+            int b = Pop(machine);
+            Push(machine, a + b);
             break;
         }
         case OP_DIV: {  
-            int b = Pop();
-            int a = Pop(); // you put the bigger number first in div
+            int b = Pop(machine);
+            int a = Pop(machine); // you put the bigger number first in div
             
             if ( b == 0 ) {
                 fprintf(stderr, "Divide by zero error. (%d / %d)\n", a, b);
                 exit(1);
             }
 
-            Push(a / b);
+            Push(machine, a / b);
             break;
         }
         case OP_MOD: {
-            int b = Pop();
-            int a = Pop();
-            Push(a % b);
+            int b = Pop(machine);
+            int a = Pop(machine);
+            Push(machine, a % b);
             break;
         }
         case OP_MOV:
-            Move(inst.data.registers.src, inst.data.registers.dest);
+            Move(machine, inst.data.registers.src, inst.data.registers.dest);
             break;
         case OP_SUB: {
-            int b = Pop();
-            int a = Pop();
-            Push(a - b);
+            int b = Pop(machine);
+            int a = Pop(machine);
+            Push(machine, a - b);
             break;
         }
         case OP_CLR:
-            ClearStack();
+            ClearStack(machine);
             break;
         case OP_SIZE:
-            Push(stackSize);
+            Push(machine, machine->stackSize);
             break;
         case OP_PRNT:
-            PrintStack();
+            PrintStack(machine);
             break;
         }
     }

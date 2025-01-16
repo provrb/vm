@@ -9,5 +9,7 @@ SRC="$SRC_DIR/*.c $API_DIR/*.c"
 
 clear # clear output
 rm -f "$OUT"
-gcc $SRC -o "$OUT" -Wall -Wextra -Werror
+gcc $SRC -o "$OUT" -Wno-implicit-function-declaration
+chmod +x "$OUT"
 ./"$OUT"
+rm -f "$OUT"

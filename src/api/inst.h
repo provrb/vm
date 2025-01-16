@@ -4,15 +4,10 @@
 /// Opcode enum definition
 /// Instruction struct definiton..
 
-/// @brief Read and run functions in program based off opcodes
-void RunInstructions();
+#ifndef INST_H
+#define INST_H
 
-/// Functions to handle operatons
-void Move(int src, int dest);
-void Push(int value);
-int  Pop();
-void ClearStack();
-void PrintStack();
+#include "machine.h"
 
 /// @brief Enum represnting assembly instructions
 ///
@@ -60,3 +55,11 @@ typedef struct {
     } data;
 } Instruction;
 
+void Move(Machine* machine, int src, int dest);
+void Push(Machine* machine, int value);
+int Pop(Machine* machine);
+void ClearStack(Machine* machine);
+void PrintStack(Machine* machine);
+void RunInstructions(Machine* machine);
+
+#endif

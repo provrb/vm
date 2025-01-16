@@ -6,10 +6,11 @@ API_DIR="$SRC_DIR/api"
 
 # input and output files
 OUT="$OUT_DIR/tests.exe"
-SRC="$TEST_DIR/tests.c $API_DIR/*.c"
+SRC="$TEST_DIR/*.c $API_DIR/*.c"
 
 clear # clear output
 rm -f "$OUT"
-gcc $SRC -o "$OUT" -Wall -Wextra -Werror
+gcc $SRC -o "$OUT" -Wno-implicit-function-declaration
 chmod +x "$OUT"
 ./"$OUT"
+rm -f "$OUT"

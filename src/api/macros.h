@@ -4,10 +4,13 @@
 /// neater. Instead of having to do {.operation = OP_PUSH, .data.value = 3}
 /// everytime you have to push a value, you can simply use an instruction macro.
 
-/// Size of the program array containing opcodes
-#define PROGRAM_SIZE sizeof(program) / sizeof(program[0])
+#define STACK_CAPACITY 1024
+#define MAX_PROGRAM_SIZE 1024
 
 /// Insturction macros
+
+#define INST_NOP() {.operation = OP_NOP}
+
 #define INST_PUSH(a)   {.operation = OP_PUSH, .data.value = a}
 #define INST_POP()     {.operation = OP_POP}
 #define INST_MOV(a, b) {.operation = OP_MOV, .data.registers.src = a, .data.registers.dest = b}
