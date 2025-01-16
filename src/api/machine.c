@@ -4,7 +4,7 @@
 #include <malloc.h>
 
 
-Machine* NewMachineWithInstructions(Instruction* ins) {
+Machine* NewMachineWithInstructions(void* ins) {
     Machine* machine = (Machine*)malloc(sizeof(Machine));
     machine->stackSize = 0;
     machine->program = ins;

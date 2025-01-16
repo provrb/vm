@@ -2,14 +2,13 @@
 #define MACHINE_H
 
 #include "macros.h"
-#include "inst.h"
 
 typedef struct {
     int stackSize;
     int stack[STACK_CAPACITY];
-    Instruction* program;
+    void* program; // this should be an array of Instruction
 } Machine;
 
-Machine* NewMachineWithInstructions(Instruction* ins);
+Machine* NewMachineWithInstructions(void* ins);
 
 #endif

@@ -1,5 +1,8 @@
 #include "api/macros.h"
 #include "api/machine.h"
+#include "api/inst.h"
+
+#include <stdlib.h>
 
 int main() {
     Instruction p[] = {

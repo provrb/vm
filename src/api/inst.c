@@ -48,8 +48,14 @@ void PrintStack(Machine* machine) {
 }
 
 void RunInstructions(Machine* machine) {
-    for (unsigned int i = 0; i < sizeof(machine->program); i++) { 
-        Instruction inst = machine->program[i];
+    Instruction* instructions = (Instruction*)machine->program;
+    if ( !instructions ) {
+        return;
+    }
+    
+    for (unsigned int i = 0; i < sizeof(instructions); i++) { 
+        Instruction inst = instructions[i];
+
         switch ( inst.operation ) {
         case OP_NOP:
             break;
