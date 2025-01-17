@@ -47,122 +47,174 @@ void PrintStack(Machine* machine) {
     printf("--- Stack End   ---\n");
 }
 
+void JumpTo(Machine* machine, int dest) {
+    if ( dest > machine->programSize || dest < 0 ) {
+        return;
+    }
+
+    // fill the jump instruction with a no op since we dont want to do a loop
+    // if we do
+    // 0x1 push 1
+    // 0x2 jmp 0x1
+    // and don't remove the jmp 0x1, it will keep pushing 1 until a stack overflow
+
+    ((Instruction*)machine->program)[machine->ip].operation = OP_NOP;
+    machine->ip = dest;
+}
+
 void RunInstructions(Machine* machine) {
+    if ( machine->ip > machine->programSize ) {
+        return;
+    }
+
     Instruction* instructions = (Instruction*)machine->program;
     if ( !instructions ) {
         fprintf(stderr, "Panic: Instructions invalid!\n");
         return;
     }
 
-    for (unsigned int i = 0; i < machine->programSize; i++) { 
-        Instruction inst = instructions[i];
+    Instruction inst = instructions[machine->ip];
+    int jump = FALSE; // if inst.operation is a successful jump
 
-        switch ( inst.operation ) {
-        case OP_NOP:
-            break;
-        case OP_SHL: {
-            int val = Pop(machine);
-            Push(machine, val << inst.data.value);
-            break;
-        }
-        case OP_SHR: {
-            int val = Pop(machine);
-            Push(machine, val >> inst.data.value);
-            break;
-        }
-        case OP_SWAP: {
-            int first = Pop(machine);
-            int second = Pop(machine);
-            Push(machine, second);
-            Push(machine, first);
-            break;
-        }
-        case OP_MUL: {
-            int a = Pop(machine);
-            int b = Pop(machine);
-            Push(machine, a * b);
-            break;
-        }
-        case OP_DUP:
-            Push(machine, machine->stack[machine->stackSize-1]);
-            break;
-        case OP_ANDB: {
-            int b = Pop(machine);
-            int a = Pop(machine);
-            Push(machine, a & b);
-            break;
-        }
-        case OP_XORB: {
-            int b = Pop(machine);
-            int a = Pop(machine);
-            Push(machine, a ^ b);
-            break;
-        }
-        case OP_NOTB: {
-            int a = Pop(machine);
-            Push(machine, ~a);
-            break;
-        }
-        case OP_ORB: {
-            int b = Pop(machine);
-            int a = Pop(machine);
-            Push(machine, a | b);
-            break;
-        }
-        case OP_NEG: {
-            int val = Pop(machine);
-            val *= -1;
-            Push(machine, val);
-            break;
-        }
-        case OP_PUSH:
-            Push(machine, inst.data.value);
-            break;
-        case OP_POP:
-            Pop(machine);
-            break;
-        case OP_ADD: {
-            int a = Pop(machine);
-            int b = Pop(machine);
-            Push(machine, a + b);
-            break;
-        }
-        case OP_DIV: {  
-            int b = Pop(machine);
-            int a = Pop(machine); // you put the bigger number first in div
-            
-            if ( b == 0 ) {
-                fprintf(stderr, "Divide by zero error. (%d / %d)\n", a, b);
-                exit(1);
-            }
-
-            Push(machine, a / b);
-            break;
-        }
-        case OP_MOD: {
-            int b = Pop(machine);
-            int a = Pop(machine);
-            Push(machine, a % b);
-            break;
-        }
-        case OP_MOV:
-            Move(machine, inst.data.registers.src, inst.data.registers.dest);
-            break;
-        case OP_SUB: {
-            int b = Pop(machine);
-            int a = Pop(machine);
-            Push(machine, a - b);
-            break;
-        }
-        case OP_CLR:
-            ClearStack(machine);
-            break;
-        case OP_SIZE:
-            Push(machine, machine->stackSize);
-            break;
-        case OP_PRNT:
-            PrintStack(machine);
-            break;
-        }
+    switch ( inst.operation ) {
+    case OP_JLE: {
+        JUMP_IF(<=, machine, inst.data.value, &jump);
+        break;
     }
+    case OP_JL: {
+        JUMP_IF(<, machine, inst.data.value, &jump);
+        break;
+    }
+    case OP_JGE: {
+        JUMP_IF(>=, machine, inst.data.value, &jump);
+        break;
+    }
+    case OP_JG: {
+        JUMP_IF(>, machine, inst.data.value, &jump);
+        break;
+    }
+    case OP_JE: {
+        JUMP_IF(==, machine, inst.data.value, &jump);
+        break;
+    }
+    case OP_JNE: {
+        JUMP_IF(!=, machine, inst.data.value, &jump);
+        break;
+    }
+    case OP_JMP: 
+        jump = TRUE;
+        JumpTo(machine, inst.data.value);
+        break;
+    case OP_NOP:
+        break;
+    case OP_SHL: {
+        int val = Pop(machine);
+        Push(machine, val << inst.data.value);
+        break;
+    }
+    case OP_SHR: {
+        int val = Pop(machine);
+        Push(machine, val >> inst.data.value);
+        break;
+    }
+    case OP_SWAP: {
+        int first = Pop(machine);
+        int second = Pop(machine);
+        Push(machine, second);
+        Push(machine, first);
+        break;
+    }
+    case OP_MUL: {
+        int a = Pop(machine);
+        int b = Pop(machine);
+        Push(machine, a * b);
+        break;
+    }
+    case OP_DUP:
+        Push(machine, machine->stack[machine->stackSize-1]);
+        break;
+    case OP_ANDB: {
+        int b = Pop(machine);
+        int a = Pop(machine);
+        Push(machine, a & b);
+        break;
+    }
+    case OP_XORB: {
+        int b = Pop(machine);
+        int a = Pop(machine);
+        Push(machine, a ^ b);
+        break;
+    }
+    case OP_NOTB: {
+        int a = Pop(machine);
+        Push(machine, ~a);
+        break;
+    }
+    case OP_ORB: {
+        int b = Pop(machine);
+        int a = Pop(machine);
+        Push(machine, a | b);
+        break;
+    }
+    case OP_NEG: {
+        int val = Pop(machine);
+        val *= -1;
+        Push(machine, val);
+        break;
+    }
+    case OP_PUSH:
+        Push(machine, inst.data.value);
+        break;
+    case OP_POP:
+        Pop(machine);
+        break;
+    case OP_ADD: {
+        int a = Pop(machine);
+        int b = Pop(machine);
+        Push(machine, a + b);
+        break;
+    }
+    case OP_DIV: {  
+        if ( machine->stack[machine->stackSize] == 0 ) {
+            fprintf(stderr, "Divide by zero error.\n");
+            exit(1);
+        }
+
+        int b = Pop(machine);
+        int a = Pop(machine); // you put the bigger number first in div            
+
+        Push(machine, a / b);
+        break;
+    }
+    case OP_MOD: {
+        int b = Pop(machine);
+        int a = Pop(machine);
+        Push(machine, a % b);
+        break;
+    }
+    case OP_MOV:
+        Move(machine, inst.data.registers.src, inst.data.registers.dest);
+        break;
+    case OP_SUB: {
+        int b = Pop(machine);
+        int a = Pop(machine);
+        Push(machine, a - b);
+        break;
+    }
+    case OP_CLR:
+        ClearStack(machine);
+        break;
+    case OP_SIZE:
+        Push(machine, machine->stackSize);
+        break;
+    case OP_PRNT:
+        PrintStack(machine);
+        break;
+    }
+
+    if ( jump == FALSE ) // was not a jump instruction
+        machine->ip++;
+
+    // run the next instruction in instruction pointer
+    RunInstructions(machine);
 }

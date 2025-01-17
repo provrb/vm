@@ -7,6 +7,10 @@
 #define STACK_CAPACITY 1024
 #define MAX_PROGRAM_SIZE 1024
 
+// booleans
+#define FALSE 0
+#define TRUE 1
+
 /// Insturction macros
 
 #define INST_NOP() {.operation = OP_NOP}
@@ -22,6 +26,14 @@
 #define INST_MOD()     {.operation = OP_MOD}
 #define INST_SUB()     {.operation = OP_SUB}
 #define INST_MUL()     {.operation = OP_MUL}
+
+#define INST_JMP(to) {.operation = OP_JMP, .data.value = to}
+#define INST_JNE(to) {.operation = OP_JNE, .data.value = to}
+#define INST_JE(to)  {.operation = OP_JE, .data.value = to}
+#define INST_JG(to)  {.operation = OP_JG, .data.value = to}
+#define INST_JGE(to) {.operation = OP_JGE, .data.value = to}
+#define INST_JL(to)  {.operation = OP_JL, .data.value = to}
+#define INST_JLE(to) {.operation = OP_JLE, .data.value = to}
 
 #define INST_DUP()     {.operation = OP_DUP}
 #define INST_CLR()     {.operation = OP_CLR}
