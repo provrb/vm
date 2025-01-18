@@ -64,12 +64,11 @@ static OpcodeEntry entries[] = {
     KW_OP_PAIR("print", OP_PRNT),
 };
 
-Token NewToken(Opcode operation, char* keyword, char* operand, char* path,
-               long lineNum);
+Token NewToken(Opcode operation, char* keyword, char* operand, Lexer* lexer);
 char* KeywordFromOpcode(Opcode opcode);
 Opcode OpcodeFromKeyword(char* keyword);
 void PrintToken(Token* token);
-void SyntaxError(char* text, long lineNum, long charNum, char* filePath);
+void SyntaxError(Lexer* lexer);
 void ParseTokens(char* file);
 
 #endif

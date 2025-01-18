@@ -98,25 +98,24 @@ int OperandExpected(Opcode op) {
     return TRUE;
 }
 
-void SyntaxError(char* text, long lineNum, long charNum, char* filePath) {
-    char* line = GetLine(charNum, text);
-    fprintf(stderr, "%s %d:%d: syntax error \n\t[...]%s", filePath, lineNum,
-            charNum, line);
+void SyntaxError(Lexer* lexer) {
+    char* line = GetLine(lexer->charIndex, lexer->text);
+    fprintf(stderr, "%s %d:%d: syntax error \n\t[...]%s", lexer->filePath,
+            lexer->lineNumber, lexer->charIndex, line);
 
     // print a ^ underneath the bad character
     for (int i = 0; i < 40; i++) {
-        if (i == charNum)
+        if (i == lexer->charIndex)
             printf("\n\t     ^\n");
     }
 
     free(line);
-    free(filePath);
+    free(lexer->filePath);
     exit(-1);
 }
 
 // 'keyword' and 'operand' will both be free'd and put into Token::text
-Token NewToken(Opcode operation, char* keyword, char* operand, char* path,
-               long lineNum) {
+Token NewToken(Opcode operation, char* keyword, char* operand, Lexer* lexer) {
     if (operand == NULL) {
         operand = "";
     }
@@ -127,8 +126,8 @@ Token NewToken(Opcode operation, char* keyword, char* operand, char* path,
 
     Token t = {0};
     t.inst = NewInstruction(IS_PENDING, operation, atoi(operand));
-    t.line = lineNum;
-    t.filepath = path;
+    t.line = lexer->lineNumber;
+    t.filepath = lexer->filePath;
     t.text = malloc(sizeof(char) * textLen);
 
     snprintf(t.text, textLen, "%s %s", keyword, operand);
@@ -197,65 +196,79 @@ char* ParseOperand(long* charNum, char* text) {
     return operand;
 }
 
-// Parse tokens from text
+void SkipLine(Lexer* lexer) {
+    while (lexer->text[lexer->charIndex] != '\n' &&
+           lexer->charIndex < lexer->textLength) {
+        lexer->charIndex++;
+    }
+    lexer->lineNumber++;
+}
+
+void CheckForComment(Lexer* lexer) {
+    // check if comment
+    if (lexer->text[lexer->charIndex] == LXR_COMMENT) {
+        SkipLine(lexer);
+    }
+}
+
 void ParseTokens(char* path) {
-    long length = 0;
-    long currentCharNum = 0;
-    long lineNumber = 1;
 
-    char* text = OpenFile(path, &length);
+    Lexer lexer = {0};
+    char* text = OpenFile(path, &lexer.textLength);
 
-    while (currentCharNum < length) {
-        // check if comment
-        if (text[currentCharNum] == LXR_COMMENT) {
-            // skip line
-            while (text[currentCharNum] != '\n') {
-                currentCharNum++;
-            }
+    lexer.lineNumber = 1;
+    lexer.filePath = strdup(path);
+    lexer.text = strdup(text);
+
+    while (lexer.charIndex < lexer.textLength) {
+        // Check for comments first
+        if (lexer.text[lexer.charIndex] == LXR_COMMENT) {
+            SkipLine(&lexer);
             continue;
         }
 
-        if (isalpha(text[currentCharNum])) {
-            // get keyword
-            char* keyword = ParseKeyword(&currentCharNum, text);
-            if (keyword == NULL) {
-                currentCharNum++;
-                continue;
-            }
-
-            Opcode opcode = OpcodeFromKeyword(keyword);
-            if (opcode == OP_UNKNOWN)
-                SyntaxError(text, lineNumber, currentCharNum, path);
-
-            SkipSpaces(text, &currentCharNum); // skip any spaces between opcode
-                                               // keyword and operands
-
-            char* operand = ParseOperand(&currentCharNum, text);
-
-            // check if operand we need and have an operand
-            if (OperandExpected(opcode) == TRUE && operand == NULL ||
-                OperandExpected(opcode) == FALSE && operand != NULL)
-                // no operand!
-                SyntaxError(text, lineNumber, currentCharNum, path);
-
-            // check if operation requires second operand
-            // if so, check for a comma
-            // if no comma, syntax error, missing second operand
-            // if comma, repeat to parse second operand
-
-            Token token = NewToken(opcode, keyword, operand, path, lineNumber);
-            PrintToken(&token);
-        } else {
-            if (!isspace(text[currentCharNum]) &&
-                text[currentCharNum] != LXR_COMMENT) {
-                SyntaxError(text, lineNumber, currentCharNum, path);
-            }
+        // Check for unknown characters
+        if (!isalpha(lexer.text[lexer.charIndex]) &&
+            !isspace(lexer.text[lexer.charIndex])) {
+            SyntaxError(&lexer);
         }
 
-        if (text[currentCharNum] == '\n') {
-            lineNumber++;
+        // get keyword
+        char* keyword = ParseKeyword(&lexer.charIndex, lexer.text);
+        if (keyword == NULL) {
+            lexer.charIndex++;
+            continue;
         }
 
-        currentCharNum++;
+        Opcode opcode = OpcodeFromKeyword(keyword);
+        if (opcode == OP_UNKNOWN)
+            SyntaxError(&lexer);
+
+        SkipSpaces(lexer.text,
+                   &lexer.charIndex); // skip any spaces between opcode
+                                      // keyword and operands
+
+        char* operand = ParseOperand(&lexer.charIndex, lexer.text);
+
+        // check if operand we need and have an operand
+        if (OperandExpected(opcode) == TRUE && operand == NULL ||
+            OperandExpected(opcode) == FALSE && operand != NULL)
+            // no operand!
+            SyntaxError(&lexer);
+
+        CheckForComment(&lexer);
+
+        // check if operation requires second operand
+        // if so, check for a comma
+        // if no comma, syntax error, missing second operand
+        // if comma, repeat to parse second operand
+
+        Token token = NewToken(opcode, keyword, operand, &lexer);
+        PrintToken(&token);
+
+        if (lexer.text[lexer.charIndex] == '\n')
+            lexer.lineNumber++;
+
+        lexer.charIndex++;
     }
 }
