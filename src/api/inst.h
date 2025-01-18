@@ -11,27 +11,28 @@
 
 /// Compare last two values in stack based off operator
 /// if the expression evaluates to true, jump to 'addr' and set res to TRUE
-/// 
+///
 /// @param operator - logical operator (>=, ==, <=, <, >)
 /// @param machine: Machine* - machine containing a stack
 /// @param addr: int -  index to jump to if expression is true
 /// @param res: int* - int* to receive the result of expression
-#define JUMP_IF(operator, machine, addr, res) {                          \
-    *res = FALSE;                                                        \
-                                                                         \
-    if ( machine->stackSize - 2 < 0 ) {                                  \
-        fprintf(stderr, "Not enough values on stack for comparison.\n"); \
-        exit(1);                                                         \
-    }                                                                    \
-                                                                         \
-    const int a = machine->stack[machine->stackSize-2];                  \
-    const int b = machine->stack[machine->stackSize-1];                  \
-                                                                         \
-    if ( (a) operator (b) ) {                                            \
-        JumpTo(machine, addr);                                           \
-        *res = TRUE;                                                     \
-    }                                                                    \
-}                                                                        \
+#define JUMP_IF(operator, machine, addr, res)                                  \
+    {                                                                          \
+        *res = FALSE;                                                          \
+                                                                               \
+        if (machine->stackSize - 2 < 0) {                                      \
+            fprintf(stderr, "Not enough values on stack for comparison.\n");   \
+            exit(1);                                                           \
+        }                                                                      \
+                                                                               \
+        const int a = machine->stack[machine->stackSize - 2];                  \
+        const int b = machine->stack[machine->stackSize - 1];                  \
+                                                                               \
+        if ((a) operator(b)) {                                                 \
+            JumpTo(machine, addr);                                             \
+            *res = TRUE;                                                       \
+        }                                                                      \
+    }
 
 /// @brief Enum represnting assembly instructions
 ///
@@ -42,7 +43,7 @@ typedef enum {
     OP_POP,
     OP_MOV,
     OP_SWAP,
-    
+
     OP_JMP,
     OP_JNE,
     OP_JE,
@@ -56,7 +57,7 @@ typedef enum {
     OP_MUL,
     OP_DIV,
     OP_MOD,
-    
+
     OP_NEG,
 
     OP_ANDB,
@@ -72,12 +73,19 @@ typedef enum {
     OP_PRNT
 } Opcode;
 
+typedef enum {
+    IS_PENDING = 3,
+    IS_EXECUTED = 5,
+} InstState;
+
 /// @brief A struct that represents an assembly instructions
 ///
 /// @param operation: opcode representing an assembly operation
-/// @param data: union containing either a value or a source and destination register to use
+/// @param data: union containing either a value or a source and destination
+/// register to use
 typedef struct {
     Opcode operation;
+    InstState state; // TRUE or FALSE
     union {
         int value;
         struct {
@@ -101,7 +109,7 @@ void Push(Machine* machine, int value);
 /// @brief Remove the last element on the stack
 /// @param machine - machine to perform the operation on
 /// @return - the removed element
-int  Pop(Machine* machine);
+int Pop(Machine* machine);
 
 /// @brief Remove all elements from the stack
 /// @param machine - machine to perform the operation on
@@ -114,5 +122,8 @@ void PrintStack(Machine* machine);
 /// @brief Run the instruction located at machine->program[machine->ip]
 /// @param machine - machine to perform the operation on
 void RunInstructions(Machine* machine);
+
+Instruction* ReadProgramFromFile(Machine* machine, char* path);
+void DumpProgramToFile(Machine* inst, char* filePath);
 
 #endif

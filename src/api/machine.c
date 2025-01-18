@@ -1,8 +1,8 @@
 #include "machine.h"
 
-#include <stdio.h>
 #include <malloc.h>
 #include <memory.h>
+#include <stdio.h>
 
 Machine* NewWithInstructions(void* ins) {
     Machine* machine = (Machine*)malloc(sizeof(Machine));
@@ -16,4 +16,5 @@ void Reset(Machine* m) {
     memset(m->program, 0, sizeof m->program);
     m->stackSize = 0;
     m->programSize = 0;
+    m->ip = 0;
 }

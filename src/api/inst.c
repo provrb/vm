@@ -5,16 +5,20 @@
 #include <stdlib.h>
 
 void Move(Machine* machine, int src, int dest) {
-    if ( machine->stackSize <= src || dest < 0 || src < 0 || machine->stackSize <= dest ) {
-        fprintf(stderr, "Trying to move value from %d to %d. Out-of-bounds.\n", src, dest);
+    if (machine->stackSize <= src || dest < 0 || src < 0 ||
+        machine->stackSize <= dest) {
+        fprintf(stderr, "Trying to move value from %d to %d. Out-of-bounds.\n",
+                src, dest);
         exit(1);
     }
     machine->stack[dest] = machine->stack[src];
 }
 
 void Push(Machine* machine, int value) {
-    if ( machine->stackSize >= STACK_CAPACITY ) {
-        fprintf(stderr, "Stack overflow when trying to push value to stack: %d\n", value);
+    if (machine->stackSize >= STACK_CAPACITY) {
+        fprintf(stderr,
+                "Stack overflow when trying to push value to stack: %d\n",
+                value);
         exit(1);
     }
 
@@ -22,7 +26,7 @@ void Push(Machine* machine, int value) {
 }
 
 int Pop(Machine* machine) {
-    if ( machine->stackSize <= 0 ) {
+    if (machine->stackSize <= 0) {
         fprintf(stderr, "Stack underflow when trying to pop from stack.\n");
         exit(1);
     }
@@ -31,24 +35,26 @@ int Pop(Machine* machine) {
 }
 
 void ClearStack(Machine* machine) {
-    if (machine->stackSize == 0) return;
+    if (machine->stackSize == 0)
+        return;
 
-    int tempSize = machine->stackSize; // need to make a temp copy because stackSize changes as we iterate
-    for ( int i = 0; i < tempSize; i++ ) {
+    int tempSize = machine->stackSize; // need to make a temp copy because
+                                       // stackSize changes as we iterate
+    for (int i = 0; i < tempSize; i++) {
         Pop(machine);
-    } 
+    }
 }
 
 void PrintStack(Machine* machine) {
     printf("--- Stack Start ---\n");
-    for ( int i = machine->stackSize-1; i >= 0; i-- ) {
+    for (int i = machine->stackSize - 1; i >= 0; i--) {
         printf("%d\n", machine->stack[i]);
     }
     printf("--- Stack End   ---\n");
 }
 
 void JumpTo(Machine* machine, int dest) {
-    if ( dest > machine->programSize || dest < 0 ) {
+    if (dest > machine->programSize || dest < 0) {
         return;
     }
 
@@ -56,19 +62,61 @@ void JumpTo(Machine* machine, int dest) {
     // if we do
     // 0x1 push 1
     // 0x2 jmp 0x1
-    // and don't remove the jmp 0x1, it will keep pushing 1 until a stack overflow
+    // and don't remove the jmp 0x1, it will keep pushing 1 until a stack
+    // overflow
 
-    ((Instruction*)machine->program)[machine->ip].operation = OP_NOP;
+    ((Instruction*)machine->program)[machine->ip].state = IS_EXECUTED;
     machine->ip = dest;
 }
 
+void DumpProgramToFile(Machine* machine, char* filePath) {
+    FILE* file = fopen(filePath, "wb");
+    if (file == NULL) {
+        fprintf(stderr, "Error opening file. Path: %s\n", filePath);
+        exit(1);
+    }
+
+    for (int i = 0; i < machine->programSize; i++) {
+        ((Instruction*)machine->program)[i].state = IS_PENDING;
+    }
+
+    fwrite(machine->program, sizeof(Instruction), machine->programSize, file);
+    fclose(file);
+}
+
+Instruction* ReadProgramFromFile(Machine* machine, char* path) {
+    FILE* file = fopen(path, "rb");
+    if (file == NULL) {
+        fprintf(stderr, "Error opening file. Path: %s\n", path);
+        exit(1);
+    }
+
+    fseek(file, 0, SEEK_END);
+    long length = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    Instruction* insts = malloc(length);
+    if (insts == NULL) {
+        fprintf(stderr, "Buffer allocation error for file contents.\n");
+        exit(1);
+    }
+
+    fread(insts, sizeof(Instruction), length / sizeof(Instruction), file);
+    fclose(file);
+
+    machine->program = insts;
+    machine->programSize = length / sizeof(Instruction);
+
+    return insts;
+}
+
 void RunInstructions(Machine* machine) {
-    if ( machine->ip > machine->programSize ) {
+    if (machine->ip >= machine->programSize) {
         return;
     }
 
     Instruction* instructions = (Instruction*)machine->program;
-    if ( !instructions ) {
+    if (!instructions) {
         fprintf(stderr, "Panic: Instructions invalid!\n");
         return;
     }
@@ -76,7 +124,15 @@ void RunInstructions(Machine* machine) {
     Instruction inst = instructions[machine->ip];
     int jump = FALSE; // if inst.operation is a successful jump
 
-    switch ( inst.operation ) {
+    // instruction already executed. go to the next instruction.
+    if (inst.state == IS_EXECUTED) {
+        machine->ip++;
+        RunInstructions(machine);
+        return;
+    }
+
+    printf("Operation %d\n", inst.operation);
+    switch (inst.operation) {
     case OP_JLE: {
         JUMP_IF(<=, machine, inst.data.value, &jump);
         break;
@@ -101,7 +157,7 @@ void RunInstructions(Machine* machine) {
         JUMP_IF(!=, machine, inst.data.value, &jump);
         break;
     }
-    case OP_JMP: 
+    case OP_JMP:
         jump = TRUE;
         JumpTo(machine, inst.data.value);
         break;
@@ -131,7 +187,7 @@ void RunInstructions(Machine* machine) {
         break;
     }
     case OP_DUP:
-        Push(machine, machine->stack[machine->stackSize-1]);
+        Push(machine, machine->stack[machine->stackSize - 1]);
         break;
     case OP_ANDB: {
         int b = Pop(machine);
@@ -174,14 +230,14 @@ void RunInstructions(Machine* machine) {
         Push(machine, a + b);
         break;
     }
-    case OP_DIV: {  
-        if ( machine->stack[machine->stackSize] == 0 ) {
+    case OP_DIV: {
+        if (machine->stack[machine->stackSize] == 0) {
             fprintf(stderr, "Divide by zero error.\n");
             exit(1);
         }
 
         int b = Pop(machine);
-        int a = Pop(machine); // you put the bigger number first in div            
+        int a = Pop(machine); // you put the bigger number first in div
 
         Push(machine, a / b);
         break;
@@ -212,7 +268,9 @@ void RunInstructions(Machine* machine) {
         break;
     }
 
-    if ( jump == FALSE ) // was not a jump instruction
+    inst.state = IS_EXECUTED;
+
+    if (jump == FALSE) // was not a jump instruction
         machine->ip++;
 
     // run the next instruction in instruction pointer

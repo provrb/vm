@@ -1,7 +1,7 @@
-#include <stdio.h>
 #include <assert.h>
-#include <stdlib.h>
 #include <memory.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "../src/api/inst.h"
 #include "../src/api/machine.h"
@@ -11,7 +11,8 @@ int main() {
 
     Machine* machine = malloc(sizeof(Machine));
     machine->stackSize = 0;
-    
+    machine->ip = 0;
+
     {
         // Push test
         Instruction a[] = {
@@ -24,7 +25,9 @@ int main() {
         machine->programSize = sizeof(a) / sizeof(Instruction);
 
         RunInstructions(machine);
-        assert( (machine->stack[0] == 3 && machine->stack[1] == 2 && machine->stack[2] == 7 ) && "Test failed for PUSH instruction." );
+        assert((machine->stack[0] == 3 && machine->stack[1] == 2 &&
+                machine->stack[2] == 7) &&
+               "Test failed for PUSH instruction.");
     }
 
     printf("PUSH test passed.\n");
@@ -40,22 +43,19 @@ int main() {
 
         machine->program = b;
         machine->programSize = sizeof(b) / sizeof(Instruction);
-        
+
         RunInstructions(machine);
         assert(machine->stack[0] == 9 && "Test failed for POP instruction.");
     }
 
     printf("POP test passed.\n");
     Reset(machine);
-    
+
     {
         // Move test
         Instruction p[] = {
-            INST_PUSH(1),
-            INST_PUSH(2),
-            INST_PUSH(3),
-            INST_PUSH(4),
-            INST_MOV(3, 2),
+            INST_PUSH(1), INST_PUSH(2),   INST_PUSH(3),
+            INST_PUSH(4), INST_MOV(3, 2),
         };
 
         machine->program = p;
@@ -71,11 +71,7 @@ int main() {
     {
         // Clear test
         Instruction p[] = {
-            INST_PUSH(1),
-            INST_PUSH(2),
-            INST_PUSH(3),
-            INST_PUSH(4),
-            INST_CLR(),
+            INST_PUSH(1), INST_PUSH(2), INST_PUSH(3), INST_PUSH(4), INST_CLR(),
         };
 
         machine->program = p;
