@@ -274,6 +274,9 @@ void RunInstructions(Machine* machine) {
     case OP_PRNT:
         PrintStack(machine);
         break;
+    default:
+        fprintf(stderr, "error unknown opcode. exiting");
+        exit(1);
     }
 
     inst.state = IS_EXECUTED;

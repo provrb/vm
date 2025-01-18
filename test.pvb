@@ -1,4 +1,4 @@
-push 1  ; this is a first comment..
-push 2; this is a comment!!!
-pop ;; this is a nother commet
-;pop
+push 4 
+push 2 
+mov r3, r5
+pop

@@ -1,7 +1,27 @@
 #include "lexer.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+/// @brief Array of all the keywords, get the opcode or keyword from eachother
+static OpcodeEntry entries[] = {
+    KW_OP_PAIR("push", OP_PUSH),  KW_OP_PAIR("pop", OP_POP),
+    KW_OP_PAIR("mov", OP_MOV),    KW_OP_PAIR("swap", OP_SWAP),
+    KW_OP_PAIR("jmp", OP_JMP),    KW_OP_PAIR("jne", OP_JNE),
+    KW_OP_PAIR("je", OP_JE),      KW_OP_PAIR("jg", OP_JG),
+    KW_OP_PAIR("jge", OP_JGE),    KW_OP_PAIR("jl", OP_JL),
+    KW_OP_PAIR("jle", OP_JLE),    KW_OP_PAIR("add", OP_ADD),
+    KW_OP_PAIR("sub", OP_SUB),    KW_OP_PAIR("mul", OP_MUL),
+    KW_OP_PAIR("div", OP_DIV),    KW_OP_PAIR("mod", OP_MOD),
+    KW_OP_PAIR("neg", OP_NEG),    KW_OP_PAIR("AND", OP_ANDB),
+    KW_OP_PAIR("OR", OP_ORB),     KW_OP_PAIR("NOT", OP_NOTB),
+    KW_OP_PAIR("XOR", OP_XORB),   KW_OP_PAIR("shl", OP_SHL),
+    KW_OP_PAIR("shr", OP_SHR),    KW_OP_PAIR("dup", OP_DUP),
+    KW_OP_PAIR("clear", OP_CLR),  KW_OP_PAIR("size", OP_SIZE),
+    KW_OP_PAIR("print", OP_PRNT),
+};
 
 char* ParseKeyword(long* currentCharNum, char* text) {
     char* currentString = malloc(MAX_KEYWORD_LEN * sizeof(char));
@@ -25,33 +45,24 @@ char* ParseKeyword(long* currentCharNum, char* text) {
 }
 
 char* GetLine(long currentCharNum, char* text) {
-    long index = 0;
-    char* line = malloc(LXR_MAX_LINE_LEN * sizeof(char));
+    long start = currentCharNum;
+    long end = currentCharNum;
+
+    while (start > 0 && text[start - 1] != '\n')
+        start--;
+
+    while (text[end] != '\n' && text[end] != '\0')
+        end++;
+
+    long lineLength = end - start;
+    char* line = malloc((lineLength + 1) * sizeof(char));
     if (line == NULL) {
         fprintf(stderr, "Memory allocation failed for line buffer.\n");
         exit(1);
     }
 
-    char character = text[currentCharNum];
-
-    while (character != '\n' && character != '\0') {
-        if (index >= LXR_MAX_LINE_LEN - 1) {
-            line = realloc(line, (LXR_MAX_LINE_LEN * 2) *
-                                     sizeof(char)); // Double the space
-            if (line == NULL) {
-                fprintf(stderr,
-                        "Memory reallocation failed for line buffer.\n");
-                exit(1);
-            }
-        }
-
-        line[index] = character;
-        index++;
-        currentCharNum++;
-        character = text[currentCharNum];
-    }
-
-    line[index] = '\0';
+    strncpy(line, &text[start], lineLength);
+    line[lineLength] = '\0';
 
     return line;
 }
@@ -82,32 +93,46 @@ char* OpenFile(char* path, long* stringLength) {
     return buffer;
 }
 
-int OperandExpected(Opcode op) {
+int OperandsExpected(Opcode op) {
     switch (op) {
-    case OP_UNKNOWN:
-    case OP_NOP:
-    case OP_NEG:
-    case OP_DUP:
-    case OP_PRNT:
-    case OP_POP:
-    case OP_CLR:
-    case OP_SIZE:
-        return FALSE;
+    // operations that require 2 opands
+    case OP_MOV:
+        return 2;
+
+    // operations that require 1 operand
+    case OP_JE:
+    case OP_JG:
+    case OP_JGE:
+    case OP_JL:
+    case OP_JLE:
+    case OP_JMP:
+    case OP_JNE:
+    case OP_PUSH:
+        return 1;
+
+    // operations that require no operands
+    default:
+        return 0;
     }
 
-    return TRUE;
+    return -1;
 }
 
-void SyntaxError(Lexer* lexer) {
+void SyntaxError(Lexer* lexer, char* optMsg) {
     char* line = GetLine(lexer->charIndex, lexer->text);
-    fprintf(stderr, "%s %d:%d: syntax error \n\t[...]%s", lexer->filePath,
-            lexer->lineNumber, lexer->charIndex, line);
+    fprintf(stderr, "%s:%ld:%ld: syntax error", lexer->filePath,
+            lexer->lineNumber, lexer->charIndex);
 
-    // print a ^ underneath the bad character
-    for (int i = 0; i < 40; i++) {
-        if (i == lexer->charIndex)
-            printf("\n\t     ^\n");
-    }
+    if (optMsg) // include optional error message
+        fprintf(stderr, " - %s", optMsg);
+
+    fprintf(stderr, "\n\t%s\n\t", line);
+
+    // print a ^ underneath the bad line
+    for (int i = 0; i < strlen(line); i++)
+        fprintf(stderr, "^");
+
+    fprintf(stderr, "\n");
 
     free(line);
     free(lexer->filePath);
@@ -115,31 +140,47 @@ void SyntaxError(Lexer* lexer) {
 }
 
 // 'keyword' and 'operand' will both be free'd and put into Token::text
-Token NewToken(Opcode operation, char* keyword, char* operand, Lexer* lexer) {
-    if (operand == NULL) {
-        operand = "";
-    }
-
+Token NewToken(Opcode operation, char* keyword, int* operands, Lexer* lexer) {
     // only one operand operations supported rn
     // get operation from keyword
-    int textLen = snprintf(NULL, 0, "%s %s", keyword, operand);
+    int textLen =
+        snprintf(NULL, 0, "%s r%d, r%d", keyword, operands[0], operands[1]) + 1;
 
     Token t = {0};
-    t.inst = NewInstruction(IS_PENDING, operation, atoi(operand));
     t.line = lexer->lineNumber;
     t.filepath = lexer->filePath;
     t.text = malloc(sizeof(char) * textLen);
 
-    snprintf(t.text, textLen, "%s %s", keyword, operand);
+    Instruction i = {};
+    i.state = IS_PENDING;
+    i.operation = operation;
 
-    free(operand);
+    switch (OperandsExpected(operation)) {
+    case 2:
+        i.data.registers.src = operands[0];
+        i.data.registers.dest = operands[1];
+        snprintf(t.text, textLen, "%s r%d, r%d", keyword, i.data.registers.src,
+                 i.data.registers.dest);
+        break;
+    case 1:
+        i.data.value = operands[0];
+        snprintf(t.text, textLen, "%s %d", keyword, i.data.value);
+        break;
+    case 0:
+        snprintf(t.text, textLen, "%s", keyword);
+        break;
+    default:
+        SyntaxError(lexer, "incorrect number of operands");
+    }
+
+    t.inst = i;
+
     free(keyword);
     return t;
 }
 
 void PrintToken(Token* token) {
-    printf("%06d: %s (%d %d)\n", token->line, token->text,
-           token->inst.operation, token->inst.data.value);
+    printf("%06d: %s\n", token->line, token->text);
 }
 
 char* KeywordFromOpcode(Opcode opcode) {
@@ -171,10 +212,12 @@ void SkipSpaces(char* text, long* charNum) {
     }
 }
 
-char* ParseOperand(long* charNum, char* text) {
+char* ParseOperand(long* charNum, char* text, Opcode opcode) {
     // check if operand
     if (!isdigit(text[*charNum])) {
-        return NULL;
+        if (opcode != OP_MOV && text[*charNum] != LXR_REG_PREFIX) {
+            return NULL; // Return NULL for invalid operand
+        }
     }
 
     int operandLen = 0;
@@ -211,14 +254,58 @@ void CheckForComment(Lexer* lexer) {
     }
 }
 
+void CheckOperandSyntax(Lexer* lexer, Opcode opcode, char* operand) {
+    // check if operand we need and have an operand
+    if ((OperandsExpected(opcode) != 0) != (operand != NULL)) {
+        if (OperandsExpected(opcode) > 0 && !operand)
+            SyntaxError(lexer, "missing operand");
+        else if (OperandsExpected(opcode) == 0 && operand)
+            SyntaxError(lexer, "passing unneccessary operand");
+        else
+            SyntaxError(lexer, NULL);
+    }
+}
+
+void ParseOperands(Lexer* lexer, Opcode opcode, int* operands) {
+    // parse 2 operands maximum
+    for (int opIndex = 0; opIndex < OperandsExpected(opcode); opIndex++) {
+        if (lexer->text[lexer->charIndex] == LXR_OPRND_BRK) { // ","
+            lexer->charIndex++;
+            SkipSpaces(lexer->text, &lexer->charIndex);
+        }
+
+        if (opcode == OP_MOV &&
+            lexer->text[lexer->charIndex] == LXR_REG_PREFIX) {
+            lexer->charIndex++;
+        } else if (opcode == OP_MOV &&
+                   lexer->text[lexer->charIndex] != LXR_REG_PREFIX)
+            SyntaxError(lexer, "no register prefix");
+
+        // Parse the operand associated with the opcode
+        char* operand = ParseOperand(&lexer->charIndex, lexer->text, opcode);
+
+        // Check the syntax of the operand
+        CheckOperandSyntax(lexer, opcode, operand);
+
+        CheckForComment(lexer); // i dont't know why but we need to check
+                                // for comments twice. it works so.
+
+        operands[opIndex] = atoi(operand);
+    }
+}
+
 void ParseTokens(char* path) {
+    // Open file and load its contents
+    long tl = 0;
+    char* text = OpenFile(path, &tl);
 
-    Lexer lexer = {0};
-    char* text = OpenFile(path, &lexer.textLength);
+    // Create lexxer struct from known variables
+    Lexer lexer = {.lineNumber = 1,
+                   .filePath = strdup(path),
+                   .text = strdup(text),
+                   .textLength = tl};
 
-    lexer.lineNumber = 1;
-    lexer.filePath = strdup(path);
-    lexer.text = strdup(text);
+    free(text);
 
     while (lexer.charIndex < lexer.textLength) {
         // Check for comments first
@@ -227,11 +314,14 @@ void ParseTokens(char* path) {
             continue;
         }
 
+        // check if we're starting a new line
+        if (lexer.text[lexer.charIndex] == '\n')
+            lexer.lineNumber++;
+
         // Check for unknown characters
         if (!isalpha(lexer.text[lexer.charIndex]) &&
-            !isspace(lexer.text[lexer.charIndex])) {
-            SyntaxError(&lexer);
-        }
+            !isspace(lexer.text[lexer.charIndex]))
+            SyntaxError(&lexer, "unknown character");
 
         // get keyword
         char* keyword = ParseKeyword(&lexer.charIndex, lexer.text);
@@ -242,33 +332,25 @@ void ParseTokens(char* path) {
 
         Opcode opcode = OpcodeFromKeyword(keyword);
         if (opcode == OP_UNKNOWN)
-            SyntaxError(&lexer);
+            SyntaxError(&lexer, "unknown opcode");
 
+        // Skip whitespace between opcode and operand
         SkipSpaces(lexer.text,
                    &lexer.charIndex); // skip any spaces between opcode
                                       // keyword and operands
 
-        char* operand = ParseOperand(&lexer.charIndex, lexer.text);
+        int operands[2] = {0};
+        ParseOperands(&lexer, opcode, operands);
 
-        // check if operand we need and have an operand
-        if (OperandExpected(opcode) == TRUE && operand == NULL ||
-            OperandExpected(opcode) == FALSE && operand != NULL)
-            // no operand!
-            SyntaxError(&lexer);
-
-        CheckForComment(&lexer);
-
-        // check if operation requires second operand
-        // if so, check for a comma
-        // if no comma, syntax error, missing second operand
-        // if comma, repeat to parse second operand
-
-        Token token = NewToken(opcode, keyword, operand, &lexer);
-        PrintToken(&token);
-
-        if (lexer.text[lexer.charIndex] == '\n')
-            lexer.lineNumber++;
+        // Create token from keyword, opcode, and operands
+        Token token = NewToken(opcode, keyword, operands, &lexer);
+        lexer.tokens[lexer.numTokens++] =
+            token; // append token to array of tokens
 
         lexer.charIndex++;
+    }
+
+    for (int ti = 0; ti < lexer.numTokens; ti++) {
+        PrintToken(&lexer.tokens[ti]);
     }
 }
