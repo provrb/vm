@@ -8,26 +8,20 @@
 #include <string.h>
 
 char* ParseKeyword(long* currentCharNum, char* text) {
-    char* currentString = malloc(sizeof(char) * 16);
+    char* currentString = malloc(sizeof(char) * 23);
     if (currentString == NULL) {
         fprintf(stderr, "Memory allocaiton failed.\n");
         exit(1);
     }
 
-    char character = text[*currentCharNum];
     long index = 0;
-    while (isalpha(character)) {
-        // if (character == '\n') {
 
-        //     break;
-        // }
-
-        currentString[index] = character;
-
+    while (isalpha(text[*currentCharNum])) {
+        char currentChar = text[*currentCharNum];
+        currentString[index] = text[*currentCharNum];
         index++;
-        (*currentCharNum)++;
 
-        character = text[*currentCharNum];
+        (*currentCharNum)++;
     }
 
     currentString[index] = '\0';
@@ -75,7 +69,7 @@ char* OpenFile(char* path, long* stringLength) {
 }
 
 void SyntaxError(long lineNum, long charNum, char* filePath, char* line) {
-    fprintf(stderr, "%s %d:%d: syntax error \n\t(...)%s", filePath, lineNum,
+    fprintf(stderr, "%s %d:%d: syntax error \n\t[...]%s", filePath, lineNum,
             charNum, line);
 
     // print a ^ underneath the bad character
@@ -89,6 +83,28 @@ void SyntaxError(long lineNum, long charNum, char* filePath, char* line) {
     exit(-1);
 }
 
+// 'keyword' and 'operand' will both be free'd and put into Token::text
+Token NewToken(Opcode operation, char* keyword, char* operand, char* path,
+               long lineNum) {
+    // only one operand operations supported rn
+    // get operation from keyword
+    int textLen = snprintf(NULL, 0, "%d: %s %s\n", lineNum, keyword, operand);
+
+    Token t = {0};
+    t.inst = NewInstruction(IS_PENDING, operation, atoi(operand));
+    t.line = lineNum;
+    t.filepath = path;
+    t.text = malloc(sizeof(char) * textLen);
+
+    snprintf(t.text, textLen, "%d: %s %s\n", lineNum, keyword, operand);
+
+    free(operand);
+    free(keyword);
+    return t;
+}
+
+void PrintToken(Token* token) { printf(""); }
+
 // Parse tokens from text
 void ParseTokens(char* path) {
     long length = 0;
@@ -96,29 +112,48 @@ void ParseTokens(char* path) {
     long lineNumber = 1;
 
     char* text = OpenFile(path, &length);
+    printf("%s\n", text);
 
-    while (currentCharNum <= length) {
-        char character = text[currentCharNum];
-
-        if (isalpha(character)) {
+    while (currentCharNum < length) {
+        if (isalpha(text[currentCharNum])) {
             // is a token
             char* keyword = ParseKeyword(&currentCharNum, text);
-            printf("%d: %s\n", lineNumber, keyword);
-            free(keyword);
-            continue;
-        } else if (isdigit(character)) {
-            // is a value
-            continue;
+            char operand[21] = {0};
+            int operandLen = 0;
+            if (operand == NULL) {
+                fprintf(stderr, "Error allocating memory for operand.\n");
+                exit(1);
+            }
+
+            // currentCharNum gets set to index after keyword
+            // skip spaces, go until not a space
+            while (isblank(text[currentCharNum])) {
+                // value for token
+                // get numeric value. get all digits
+                currentCharNum++;
+            } 
+
+            while (isdigit(text[currentCharNum])) {
+                operand[operandLen] = text[currentCharNum];
+                operandLen++;
+                currentCharNum++;
+            }
+
+            operand[operandLen] = '\0';
+
+            Token token = NewToken(OP_NOP, keyword, operand, path, lineNumber);
+            printf("%s\n", token.text);
         } else {
-            char* line = GetLine(currentCharNum, text);
-            SyntaxError(lineNumber, currentCharNum, path, line);
+            if (!isspace(text[currentCharNum])) {
+                char* line = GetLine(currentCharNum, text);
+                SyntaxError(lineNumber, currentCharNum, path, line);
+            }
+        }
+
+        if (text[currentCharNum] == '\n') {
+            lineNumber++;
         }
 
         currentCharNum++;
-
-        if (character == '\n') {
-            lineNumber++;
-            continue;
-        }
     }
 }

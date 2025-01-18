@@ -95,6 +95,8 @@ typedef struct {
     } data;
 } Instruction;
 
+Instruction NewInstruction(InstState state, Opcode op, int value);
+
 /// @brief Move the value on stack at index 'src' to index 'dest'
 /// @param machine - machine to perform move operation on
 /// @param src - index of value to move

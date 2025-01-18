@@ -4,6 +4,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+Instruction NewInstruction(InstState state, Opcode op, int value) {
+    Instruction i = {};
+    i.state = state;
+    i.operation = op;
+    i.data.value = value;
+    return i;
+}
+
 void Move(Machine* machine, int src, int dest) {
     if (machine->stackSize <= src || dest < 0 || src < 0 ||
         machine->stackSize <= dest) {
