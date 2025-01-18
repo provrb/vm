@@ -8,9 +8,8 @@
 #define MAX_PROGRAM_SIZE 1024
 #define MAX_KEYWORD_LEN 35 // keywords should NOT exceed this length
 #define MAX_OPERAND_LEN 50 // worst case scenario you have two LLONG_MAX
-#define LXR_MAX_LINE_LEN                                                       \
-    MAX_KEYWORD_LEN + MAX_OPERAND_LEN // maximum length a line can be lexer
-#define LXR_COMMENT ';' // a command in the language, like c has // for comment
+#define LXR_MAX_LINE_LEN MAX_KEYWORD_LEN + MAX_OPERAND_LEN // maximum length a line can be lexer
+#define LXR_COMMENT ';'    // a command in the language, like c has // for comment
 #define LXR_OPRND_BRK ','  // character that seperates operands
 #define LXR_REG_PREFIX 'r' // register prefix for operations like mov
 
@@ -24,10 +23,8 @@
 
 #define INST_PUSH(a) {.operation = OP_PUSH, .data.value = a}
 #define INST_POP() {.operation = OP_POP}
-#define INST_MOV(source, destination)                                          \
-    {.operation = OP_MOV,                                                      \
-     .data.registers.src = source,                                             \
-     .data.registers.dest = destination}
+#define INST_MOV(source, destination)                                                              \
+    {.operation = OP_MOV, .data.registers.src = source, .data.registers.dest = destination}
 #define INST_PRNT() {.operation = OP_PRNT}
 #define INST_SWAP() {.operation = OP_SWAP}
 

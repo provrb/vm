@@ -4,19 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-Instruction NewInstruction(InstState state, Opcode op, int value) {
-    Instruction i = {};
-    i.state = state;
-    i.operation = op;
-    i.data.value = value;
-    return i;
-}
-
 void Move(Machine* machine, int src, int dest) {
-    if (machine->stackSize <= src || dest < 0 || src < 0 ||
-        machine->stackSize <= dest) {
-        fprintf(stderr, "Trying to move value from %d to %d. Out-of-bounds.\n",
-                src, dest);
+    if (machine->stackSize <= src || dest < 0 || src < 0 || machine->stackSize <= dest) {
+        fprintf(stderr, "Trying to move value from %d to %d. Out-of-bounds.\n", src, dest);
         exit(1);
     }
     machine->stack[dest] = machine->stack[src];
@@ -24,9 +14,7 @@ void Move(Machine* machine, int src, int dest) {
 
 void Push(Machine* machine, int value) {
     if (machine->stackSize >= STACK_CAPACITY) {
-        fprintf(stderr,
-                "Stack overflow when trying to push value to stack: %d\n",
-                value);
+        fprintf(stderr, "Stack overflow when trying to push value to stack: %d\n", value);
         exit(1);
     }
 
@@ -65,13 +53,6 @@ void JumpTo(Machine* machine, int dest) {
     if (dest > machine->programSize || dest < 0) {
         return;
     }
-
-    // fill the jump instruction with a no op since we dont want to do a loop
-    // if we do
-    // 0x1 push 1
-    // 0x2 jmp 0x1
-    // and don't remove the jmp 0x1, it will keep pushing 1 until a stack
-    // overflow
 
     ((Instruction*)machine->program)[machine->ip].state = IS_EXECUTED;
     machine->ip = dest;

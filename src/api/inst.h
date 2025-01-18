@@ -16,22 +16,22 @@
 /// @param machine: Machine* - machine containing a stack
 /// @param addr: int -  index to jump to if expression is true
 /// @param res: int* - int* to receive the result of expression
-#define JUMP_IF(operator, machine, addr, res)                                  \
-    {                                                                          \
-        *res = FALSE;                                                          \
-                                                                               \
-        if (machine->stackSize - 2 < 0) {                                      \
-            fprintf(stderr, "Not enough values on stack for comparison.\n");   \
-            exit(1);                                                           \
-        }                                                                      \
-                                                                               \
-        const int a = machine->stack[machine->stackSize - 2];                  \
-        const int b = machine->stack[machine->stackSize - 1];                  \
-                                                                               \
-        if ((a) operator(b)) {                                                 \
-            JumpTo(machine, addr);                                             \
-            *res = TRUE;                                                       \
-        }                                                                      \
+#define JUMP_IF(operator, machine, addr, res)                                                      \
+    {                                                                                              \
+        *res = FALSE;                                                                              \
+                                                                                                   \
+        if (machine->stackSize - 2 < 0) {                                                          \
+            fprintf(stderr, "Not enough values on stack for comparison.\n");                       \
+            exit(1);                                                                               \
+        }                                                                                          \
+                                                                                                   \
+        const int a = machine->stack[machine->stackSize - 2];                                      \
+        const int b = machine->stack[machine->stackSize - 1];                                      \
+                                                                                                   \
+        if ((a) operator(b)) {                                                                     \
+            JumpTo(machine, addr);                                                                 \
+            *res = TRUE;                                                                           \
+        }                                                                                          \
     }
 
 /// @brief Enum represnting assembly instructions
@@ -97,8 +97,6 @@ typedef struct {
         } registers;
     } data;
 } Instruction;
-
-Instruction NewInstruction(InstState state, Opcode op, int value);
 
 /// @brief Move the value on stack at index 'src' to index 'dest'
 /// @param machine - machine to perform move operation on

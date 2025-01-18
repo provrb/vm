@@ -25,8 +25,7 @@ int main() {
         machine->programSize = sizeof(a) / sizeof(Instruction);
 
         RunInstructions(machine);
-        assert((machine->stack[0] == 3 && machine->stack[1] == 2 &&
-                machine->stack[2] == 7) &&
+        assert((machine->stack[0] == 3 && machine->stack[1] == 2 && machine->stack[2] == 7) &&
                "Test failed for PUSH instruction.");
     }
 
@@ -54,8 +53,7 @@ int main() {
     {
         // Move test
         Instruction p[] = {
-            INST_PUSH(1), INST_PUSH(2),   INST_PUSH(3),
-            INST_PUSH(4), INST_MOV(3, 2),
+            INST_PUSH(1), INST_PUSH(2), INST_PUSH(3), INST_PUSH(4), INST_MOV(3, 2),
         };
 
         machine->program = p;

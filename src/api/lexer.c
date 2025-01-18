@@ -7,31 +7,26 @@
 
 /// @brief Array of all the keywords, get the opcode or keyword from eachother
 static OpcodeEntry entries[] = {
-    KW_OP_PAIR("push", OP_PUSH),  KW_OP_PAIR("pop", OP_POP),
-    KW_OP_PAIR("mov", OP_MOV),    KW_OP_PAIR("swap", OP_SWAP),
-    KW_OP_PAIR("jmp", OP_JMP),    KW_OP_PAIR("jne", OP_JNE),
-    KW_OP_PAIR("je", OP_JE),      KW_OP_PAIR("jg", OP_JG),
-    KW_OP_PAIR("jge", OP_JGE),    KW_OP_PAIR("jl", OP_JL),
-    KW_OP_PAIR("jle", OP_JLE),    KW_OP_PAIR("add", OP_ADD),
-    KW_OP_PAIR("sub", OP_SUB),    KW_OP_PAIR("mul", OP_MUL),
-    KW_OP_PAIR("div", OP_DIV),    KW_OP_PAIR("mod", OP_MOD),
-    KW_OP_PAIR("neg", OP_NEG),    KW_OP_PAIR("AND", OP_ANDB),
-    KW_OP_PAIR("OR", OP_ORB),     KW_OP_PAIR("NOT", OP_NOTB),
-    KW_OP_PAIR("XOR", OP_XORB),   KW_OP_PAIR("shl", OP_SHL),
-    KW_OP_PAIR("shr", OP_SHR),    KW_OP_PAIR("dup", OP_DUP),
-    KW_OP_PAIR("clear", OP_CLR),  KW_OP_PAIR("size", OP_SIZE),
-    KW_OP_PAIR("print", OP_PRNT),
+    KW_OP_PAIR("push", OP_PUSH), KW_OP_PAIR("pop", OP_POP),   KW_OP_PAIR("mov", OP_MOV),
+    KW_OP_PAIR("swap", OP_SWAP), KW_OP_PAIR("jmp", OP_JMP),   KW_OP_PAIR("jne", OP_JNE),
+    KW_OP_PAIR("je", OP_JE),     KW_OP_PAIR("jg", OP_JG),     KW_OP_PAIR("jge", OP_JGE),
+    KW_OP_PAIR("jl", OP_JL),     KW_OP_PAIR("jle", OP_JLE),   KW_OP_PAIR("add", OP_ADD),
+    KW_OP_PAIR("sub", OP_SUB),   KW_OP_PAIR("mul", OP_MUL),   KW_OP_PAIR("div", OP_DIV),
+    KW_OP_PAIR("mod", OP_MOD),   KW_OP_PAIR("neg", OP_NEG),   KW_OP_PAIR("AND", OP_ANDB),
+    KW_OP_PAIR("OR", OP_ORB),    KW_OP_PAIR("NOT", OP_NOTB),  KW_OP_PAIR("XOR", OP_XORB),
+    KW_OP_PAIR("shl", OP_SHL),   KW_OP_PAIR("shr", OP_SHR),   KW_OP_PAIR("dup", OP_DUP),
+    KW_OP_PAIR("clear", OP_CLR), KW_OP_PAIR("size", OP_SIZE), KW_OP_PAIR("print", OP_PRNT),
 };
 
-char* ParseKeyword(long* currentCharNum, char* text) {
+char* ParseKeyword(Lexer* lexer) {
     char* currentString = malloc(MAX_KEYWORD_LEN * sizeof(char));
     long index = 0;
 
-    while (isalpha(text[*currentCharNum])) {
-        currentString[index] = text[*currentCharNum];
+    while (isalpha(lexer->text[lexer->charIndex])) {
+        currentString[index] = lexer->text[lexer->charIndex];
         index++;
 
-        (*currentCharNum)++;
+        lexer->charIndex++;
     }
 
     if (index == 0) {
@@ -44,24 +39,22 @@ char* ParseKeyword(long* currentCharNum, char* text) {
     return currentString;
 }
 
-char* GetLine(long currentCharNum, char* text) {
-    long start = currentCharNum;
-    long end = currentCharNum;
+char* GetLine(Lexer* lexer) {
+    long start = lexer->charIndex;
+    long end = lexer->charIndex;
 
-    while (start > 0 && text[start - 1] != '\n')
+    while (start > 0 && lexer->text[start - 1] != '\n')
         start--;
 
-    while (text[end] != '\n' && text[end] != '\0')
+    while (lexer->text[end] != '\n' && lexer->text[end] != '\0')
         end++;
 
     long lineLength = end - start;
     char* line = malloc((lineLength + 1) * sizeof(char));
-    if (line == NULL) {
-        fprintf(stderr, "Memory allocation failed for line buffer.\n");
-        exit(1);
-    }
+    if (line == NULL)
+        return "";
 
-    strncpy(line, &text[start], lineLength);
+    strncpy(line, &lexer->text[start], lineLength);
     line[lineLength] = '\0';
 
     return line;
@@ -119,9 +112,9 @@ int OperandsExpected(Opcode op) {
 }
 
 void SyntaxError(Lexer* lexer, char* optMsg) {
-    char* line = GetLine(lexer->charIndex, lexer->text);
-    fprintf(stderr, "%s:%ld:%ld: syntax error", lexer->filePath,
-            lexer->lineNumber, lexer->charIndex);
+    char* line = GetLine(lexer);
+    fprintf(stderr, "%s:%ld:%ld: syntax error", lexer->filePath, lexer->lineNumber,
+            lexer->charIndex);
 
     if (optMsg) // include optional error message
         fprintf(stderr, " - %s", optMsg);
@@ -143,8 +136,7 @@ void SyntaxError(Lexer* lexer, char* optMsg) {
 Token NewToken(Opcode operation, char* keyword, int* operands, Lexer* lexer) {
     // only one operand operations supported rn
     // get operation from keyword
-    int textLen =
-        snprintf(NULL, 0, "%s r%d, r%d", keyword, operands[0], operands[1]) + 1;
+    int textLen = snprintf(NULL, 0, "%s r%d, r%d", keyword, operands[0], operands[1]) + 1;
 
     Token t = {0};
     t.line = lexer->lineNumber;
@@ -179,9 +171,7 @@ Token NewToken(Opcode operation, char* keyword, int* operands, Lexer* lexer) {
     return t;
 }
 
-void PrintToken(Token* token) {
-    printf("%06d: %s\n", token->line, token->text);
-}
+void PrintToken(Token* token) { printf("%06d: %s\n", token->line, token->text); }
 
 char* KeywordFromOpcode(Opcode opcode) {
     for (int i = 0; i < sizeof(entries) / sizeof(OpcodeEntry); i++) {
@@ -210,10 +200,10 @@ void SkipSpaces(Lexer* lexer) {
     }
 }
 
-char* ParseOperand(long* charNum, char* text, Opcode opcode) {
+char* ParseOperand(Lexer* lexer, Opcode opcode) {
     // check if operand
-    if (!isdigit(text[*charNum])) {
-        if (opcode != OP_MOV && text[*charNum] != LXR_REG_PREFIX) {
+    if (!isdigit(lexer->text[lexer->charIndex])) {
+        if (opcode != OP_MOV && lexer->text[lexer->charIndex] != LXR_REG_PREFIX) {
             return NULL; // Return NULL for invalid operand
         }
     }
@@ -222,10 +212,10 @@ char* ParseOperand(long* charNum, char* text, Opcode opcode) {
     char* operand = malloc(sizeof(char) * 21);
 
     // parse operand
-    while (isdigit(text[*charNum])) {
-        operand[operandLen] = text[*charNum];
+    while (isdigit(lexer->text[lexer->charIndex])) {
+        operand[operandLen] = lexer->text[lexer->charIndex];
         operandLen++;
-        (*charNum)++;
+        lexer->charIndex++;
     }
 
     operand[operandLen] = '\0';
@@ -238,8 +228,7 @@ char* ParseOperand(long* charNum, char* text, Opcode opcode) {
 }
 
 void SkipLine(Lexer* lexer) {
-    while (lexer->text[lexer->charIndex] != '\n' &&
-           lexer->charIndex < lexer->textLength) {
+    while (lexer->text[lexer->charIndex] != '\n' && lexer->charIndex < lexer->textLength) {
         lexer->charIndex++;
     }
     lexer->lineNumber++;
@@ -275,15 +264,13 @@ void ParseOperands(Lexer* lexer, Opcode opcode, int* operands) {
             SyntaxError(lexer, "missing seperator between operands");
         }
 
-        if (opcode == OP_MOV &&
-            lexer->text[lexer->charIndex] == LXR_REG_PREFIX) {
+        if (opcode == OP_MOV && lexer->text[lexer->charIndex] == LXR_REG_PREFIX) {
             lexer->charIndex++;
-        } else if (opcode == OP_MOV &&
-                   lexer->text[lexer->charIndex] != LXR_REG_PREFIX)
+        } else if (opcode == OP_MOV && lexer->text[lexer->charIndex] != LXR_REG_PREFIX)
             SyntaxError(lexer, "no register prefix");
 
         // Parse the operand associated with the opcode
-        char* operand = ParseOperand(&lexer->charIndex, lexer->text, opcode);
+        char* operand = ParseOperand(lexer, opcode);
 
         // Check the syntax of the operand
         CheckOperandSyntax(lexer, opcode, operand);
@@ -297,9 +284,8 @@ void ParseOperands(Lexer* lexer, Opcode opcode, int* operands) {
 
 void SkipWhitespace(Lexer* lexer) {
     while (isspace(lexer->text[lexer->charIndex])) {
-        if (lexer->text[lexer->charIndex] == '\n') {
+        if (lexer->text[lexer->charIndex] == '\n')
             lexer->lineNumber++;
-        }
         lexer->charIndex++;
     }
 }
@@ -310,10 +296,8 @@ void ParseTokens(char* path) {
     char* text = OpenFile(path, &tl);
 
     // Create lexxer struct from known variables
-    Lexer lexer = {.lineNumber = 1,
-                   .filePath = strdup(path),
-                   .text = strdup(text),
-                   .textLength = tl};
+    Lexer lexer = {
+        .lineNumber = 1, .filePath = strdup(path), .text = strdup(text), .textLength = tl};
 
     free(text);
 
@@ -325,8 +309,7 @@ void ParseTokens(char* path) {
         CheckForComment(&lexer);
 
         // Check for unknown characters
-        if (!isalpha(lexer.text[lexer.charIndex]) &&
-            !isspace(lexer.text[lexer.charIndex])) {
+        if (!isalpha(lexer.text[lexer.charIndex]) && !isspace(lexer.text[lexer.charIndex])) {
             if (lexer.text[lexer.charIndex] == '\0') // last character in file
                 break;
 
@@ -334,16 +317,16 @@ void ParseTokens(char* path) {
         }
 
         // get keyword
-        char* keyword = ParseKeyword(&lexer.charIndex, lexer.text);
+        char* keyword = ParseKeyword(&lexer);
         if (keyword == NULL) {
             lexer.charIndex++;
             continue;
         }
 
+        // get opcode from keyword as an Opcode enum
         Opcode opcode = OpcodeFromKeyword(keyword);
-        if (opcode == OP_UNKNOWN) {
+        if (opcode == OP_UNKNOWN)
             SyntaxError(&lexer, "unknown opcode");
-        }
 
         // Skip whitespace between opcode and operand
         SkipSpaces(&lexer); // skip any spaces between opcode
@@ -354,9 +337,9 @@ void ParseTokens(char* path) {
 
         // Create token from keyword, opcode, and operands
         Token token = NewToken(opcode, keyword, operands, &lexer);
-        lexer.tokens[lexer.numTokens++] =
-            token; // append token to array of tokens
+        lexer.tokens[lexer.numTokens++] = token; // append token to array of tokens
 
+        // move to the next character
         lexer.charIndex++;
     }
 
