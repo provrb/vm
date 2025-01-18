@@ -201,14 +201,12 @@ Opcode OpcodeFromKeyword(char* keyword) {
     return OP_UNKNOWN;
 }
 
-void SkipSpaces(char* text, long* charNum) {
+void SkipSpaces(Lexer* lexer) {
     // skip spaces, go until not a space
-    if (isblank(text[*charNum])) {
-        while (isblank(text[*charNum])) {
-            // value for token
-            // get numeric value. get all digits
-            (*charNum)++;
-        }
+    while (isblank(lexer->text[lexer->charIndex])) {
+        // value for token
+        // get numeric value. get all digits
+        lexer->charIndex++;
     }
 }
 
@@ -271,7 +269,10 @@ void ParseOperands(Lexer* lexer, Opcode opcode, int* operands) {
     for (int opIndex = 0; opIndex < OperandsExpected(opcode); opIndex++) {
         if (lexer->text[lexer->charIndex] == LXR_OPRND_BRK) { // ","
             lexer->charIndex++;
-            SkipSpaces(lexer->text, &lexer->charIndex);
+            SkipSpaces(lexer);
+        } else if (opIndex > 0 && opcode == OP_MOV &&
+                   lexer->text[lexer->charIndex] != LXR_OPRND_BRK) {
+            SyntaxError(lexer, "missing seperator between operands");
         }
 
         if (opcode == OP_MOV &&
@@ -294,6 +295,15 @@ void ParseOperands(Lexer* lexer, Opcode opcode, int* operands) {
     }
 }
 
+void SkipWhitespace(Lexer* lexer) {
+    while (isspace(lexer->text[lexer->charIndex])) {
+        if (lexer->text[lexer->charIndex] == '\n') {
+            lexer->lineNumber++;
+        }
+        lexer->charIndex++;
+    }
+}
+
 void ParseTokens(char* path) {
     // Open file and load its contents
     long tl = 0;
@@ -308,20 +318,20 @@ void ParseTokens(char* path) {
     free(text);
 
     while (lexer.charIndex < lexer.textLength) {
-        // Check for comments first
-        if (lexer.text[lexer.charIndex] == LXR_COMMENT) {
-            SkipLine(&lexer);
-            continue;
-        }
+        // skip any whitespace and newlines
+        SkipWhitespace(&lexer);
 
-        // check if we're starting a new line
-        if (lexer.text[lexer.charIndex] == '\n')
-            lexer.lineNumber++;
+        // Check for comments
+        CheckForComment(&lexer);
 
         // Check for unknown characters
         if (!isalpha(lexer.text[lexer.charIndex]) &&
-            !isspace(lexer.text[lexer.charIndex]))
+            !isspace(lexer.text[lexer.charIndex])) {
+            if (lexer.text[lexer.charIndex] == '\0') // last character in file
+                break;
+
             SyntaxError(&lexer, "unknown character");
+        }
 
         // get keyword
         char* keyword = ParseKeyword(&lexer.charIndex, lexer.text);
@@ -331,13 +341,13 @@ void ParseTokens(char* path) {
         }
 
         Opcode opcode = OpcodeFromKeyword(keyword);
-        if (opcode == OP_UNKNOWN)
+        if (opcode == OP_UNKNOWN) {
             SyntaxError(&lexer, "unknown opcode");
+        }
 
         // Skip whitespace between opcode and operand
-        SkipSpaces(lexer.text,
-                   &lexer.charIndex); // skip any spaces between opcode
-                                      // keyword and operands
+        SkipSpaces(&lexer); // skip any spaces between opcode
+                            // keyword and operands
 
         int operands[2] = {0};
         ParseOperands(&lexer, opcode, operands);
