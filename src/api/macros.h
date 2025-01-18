@@ -6,6 +6,10 @@
 
 #define STACK_CAPACITY 1024
 #define MAX_PROGRAM_SIZE 1024
+#define MAX_KEYWORD_LEN 35 // keywords should NOT exceed this length
+#define MAX_OPERAND_LEN 50 // worst case scenario you have two LLONG_MAX
+#define LXR_MAX_LINE_LEN                                                       \
+    MAX_KEYWORD_LEN + MAX_OPERAND_LEN // maximum length a line can be lexer
 
 // booleans
 #define FALSE 0

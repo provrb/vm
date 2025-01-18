@@ -8,20 +8,20 @@
 #include <string.h>
 
 char* ParseKeyword(long* currentCharNum, char* text) {
-    char* currentString = malloc(sizeof(char) * 23);
-    if (currentString == NULL) {
-        fprintf(stderr, "Memory allocaiton failed.\n");
-        exit(1);
-    }
-
+    char* currentString = malloc(MAX_KEYWORD_LEN * sizeof(char));
     long index = 0;
 
     while (isalpha(text[*currentCharNum])) {
-        char currentChar = text[*currentCharNum];
         currentString[index] = text[*currentCharNum];
         index++;
 
         (*currentCharNum)++;
+    }
+
+    if (index == 0) {
+        // no keyword
+        free(currentString);
+        return NULL;
     }
 
     currentString[index] = '\0';
@@ -30,7 +30,7 @@ char* ParseKeyword(long* currentCharNum, char* text) {
 
 char* GetLine(long currentCharNum, char* text) {
     char character = text[currentCharNum];
-    char* line = malloc(sizeof(char) * 40);
+    char* line = malloc(LXR_MAX_LINE_LEN * sizeof(char));
     long index = 0;
     while (character != '\n') {
         line[index] = character;
@@ -112,18 +112,19 @@ void ParseTokens(char* path) {
     long lineNumber = 1;
 
     char* text = OpenFile(path, &length);
-    printf("%s\n", text);
 
     while (currentCharNum < length) {
         if (isalpha(text[currentCharNum])) {
-            // is a token
+            // get keyword
             char* keyword = ParseKeyword(&currentCharNum, text);
+            if (keyword == NULL) {
+                currentCharNum++;
+                continue;
+            }
+
+            // get operand
             char operand[21] = {0};
             int operandLen = 0;
-            if (operand == NULL) {
-                fprintf(stderr, "Error allocating memory for operand.\n");
-                exit(1);
-            }
 
             // currentCharNum gets set to index after keyword
             // skip spaces, go until not a space
@@ -131,8 +132,9 @@ void ParseTokens(char* path) {
                 // value for token
                 // get numeric value. get all digits
                 currentCharNum++;
-            } 
+            }
 
+            // parse operand
             while (isdigit(text[currentCharNum])) {
                 operand[operandLen] = text[currentCharNum];
                 operandLen++;
@@ -140,6 +142,11 @@ void ParseTokens(char* path) {
             }
 
             operand[operandLen] = '\0';
+
+            // check if operation requires second operand
+            // if so, check for a comma
+            // if no comma, syntax error, missing second operand
+            // if comma, repeat to parse second operand
 
             Token token = NewToken(OP_NOP, keyword, operand, path, lineNumber);
             printf("%s\n", token.text);
