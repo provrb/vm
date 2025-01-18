@@ -11,6 +11,8 @@
 #define LXR_MAX_LINE_LEN                                                       \
     MAX_KEYWORD_LEN + MAX_OPERAND_LEN // maximum length a line can be lexer
 
+#define LXR_COMMENT ';' // a command in the language, like c has // for comment
+
 // booleans
 #define FALSE 0
 #define TRUE 1

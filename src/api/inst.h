@@ -38,6 +38,7 @@
 ///
 /// Depending on an opcode, perform different functions
 typedef enum {
+    OP_UNKNOWN = -1,
     OP_NOP = 0,
     OP_PUSH,
     OP_POP,
@@ -73,6 +74,8 @@ typedef enum {
     OP_PRNT
 } Opcode;
 
+/// @brief Decribe the state of an instructions
+/// Whether or not it has be ran or not, useful for jump
 typedef enum {
     IS_PENDING = 3,
     IS_EXECUTED = 5,
