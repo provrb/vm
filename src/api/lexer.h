@@ -45,7 +45,7 @@ typedef struct {
     char* filePath;
     LexerState state;
     Token tokens[MAX_PROGRAM_SIZE];
-    int numTokens;
+    unsigned long numTokens;
 } Lexer;
 
 /// @brief An entry to represent relationship between string and enum
@@ -59,7 +59,7 @@ typedef struct {
 } OpcodeEntry;
 
 /// File I/O operations
-char* OpenFile(char* path, long* stringLength);
+char* ReadFromFile(char* path, long* stringLength);
 
 /// Error handling
 ///

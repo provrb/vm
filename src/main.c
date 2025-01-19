@@ -1,22 +1,23 @@
-#include "api/inst.h"
 #include "api/lexer.h"
-#include "api/machine.h"
-#include "api/macros.h"
-
 #include <stdio.h>
-#include <stdlib.h>
+#include <windows.h>
 
 int main() {
+    // Start timer
+    LARGE_INTEGER frequency;
+    QueryPerformanceFrequency(&frequency);
+    LARGE_INTEGER startTime;
+    QueryPerformanceCounter(&startTime);
+
     ParseTokens("./test.pvb");
-    // Machine* machine = malloc(sizeof(Machine));
-    // machine->stackSize = 0;
-    // machine->ip = 0;
 
-    // Instruction* p = ReadProgramFromFile(machine, "./dump.txt");
+    LARGE_INTEGER endTime;
+    QueryPerformanceCounter(&endTime);
 
-    // RunInstructions(machine);
+    double elapsedTime =
+        (double)(endTime.QuadPart - startTime.QuadPart) / frequency.QuadPart * 1000.0;
 
-    // free(p);
-    // free(machine);
+    printf("Function execution time: %.3f ms\n", elapsedTime);
+
     return 0;
 }

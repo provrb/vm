@@ -87,7 +87,7 @@ char* GetLine(Lexer* lexer) {
     return line;
 }
 
-char* OpenFile(char* path, long* stringLength) {
+char* ReadFromFile(char* path, long* stringLength) {
     FILE* file = fopen(path, "rb");
     if (file == NULL) {
         fprintf(stderr, "Error opening file. Path: %s\n", path);
@@ -149,7 +149,7 @@ void SyntaxError(Lexer* lexer, char* optMsg) {
     fprintf(stderr, "\n\t%s\n\t", line);
 
     // print a ^ underneath the bad line
-    for (int i = 0; i < strlen(line); i++)
+    for (size_t i = 0; i < strlen(line); i++)
         fprintf(stderr, "^");
 
     fprintf(stderr, "\n");
@@ -276,7 +276,7 @@ void SkipSpaces(Lexer* lexer) {
 void ParseTokens(char* path) {
     // Open file and load its contents
     long tl = 0;
-    char* text = OpenFile(path, &tl);
+    char* text = ReadFromFile(path, &tl);
 
     // Create lexxer struct from known variables
     Lexer lexer = {
@@ -285,7 +285,7 @@ void ParseTokens(char* path) {
     char keyword[MAX_KEYWORD_LEN] = {0};
     long index = 0;
 
-    while (lexer.charIndex <= lexer.textLength) {
+    while (lexer.charIndex <= lexer.textLength && lexer.numTokens <= MAX_PROGRAM_SIZE) {
         if (lexer.state == SKIP_SPACES) {
             if (isblank(lexer.text[lexer.charIndex])) {
                 lexer.charIndex++;
@@ -330,13 +330,15 @@ void ParseTokens(char* path) {
                 keyword[index++] = lexer.text[lexer.charIndex];
                 lexer.charIndex++;
                 continue;
-            } else if (index > 0) {
-                keyword[index] = '\0';
-                lexer.state = PARSE;
-            } else if (index == 0) {
+            }
+
+            if (index == 0) {
                 lexer.charIndex++;
                 continue;
             }
+
+            keyword[index] = '\0';
+            lexer.state = PARSE;
         }
 
         // get opcode from keyword as an Opcode enum
@@ -354,9 +356,11 @@ void ParseTokens(char* path) {
         lexer.tokens[lexer.numTokens++] = token; // append token to array of tokens
     }
 
-    for (int ti = 0; ti < lexer.numTokens; ti++) {
-        PrintToken(&lexer.tokens[ti]);
-    }
+    // for (int i = 0; i < lexer.numTokens; i++) {
+    //     PrintToken(&lexer.tokens[i]);
+    // }
+
+    printf("Parsed %d instructions.\n", lexer.numTokens);
 
     free(text);
     free(path);
