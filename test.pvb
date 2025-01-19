@@ -1,3 +1,10 @@
-push 2
-jmp 0
-print
+_start: ; this is the entry point of our application
+    push 0 ; we add 0 to the stack as a number
+    print  ; we then print the stack, 0 should be outputted as a number
+    clear  ; clear the stack of all elements. 0 is gone
+
+_text:
+    push 4 ; add 4 to the stack
+    push 9
+    add
+    print

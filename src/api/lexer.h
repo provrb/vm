@@ -15,6 +15,15 @@
 #include "inst.h"   // for Instruction and Opcode
 #include "macros.h" // for size defintions, i.e MAX_KEYWORD_LEN
 
+/// Represents a label
+/// e.g _start:
+/// always starts with 'LXR_LABEL_
+typedef struct {
+    char name[MAX_LABEL_LEN];
+    int nameLen;
+    long index;
+} Label;
+
 /// @brief More information about an instruction
 ///
 /// Includes the parsed instruction information
@@ -33,6 +42,7 @@ typedef enum {
     PARSE,
     PARSE_KWD,
     PARSE_OPND,
+    PARSE_LABEL,
     SKIP_LINE,
     SKIP_SPACES,
 } LexerState;
@@ -44,8 +54,12 @@ typedef struct {
     long lineNumber;
     char* filePath;
     LexerState state;
+
     Token tokens[MAX_PROGRAM_SIZE];
-    unsigned long numTokens;
+    unsigned int numTokens;
+
+    Label labels[MAX_LABELS];
+    unsigned int numLabels;
 } Lexer;
 
 /// @brief An entry to represent relationship between string and enum

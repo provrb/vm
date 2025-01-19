@@ -66,7 +66,7 @@ void PrintStack(Machine* machine) {
     for (int i = machine->stackSize - 1; i >= 0; i--) {
         Data x = machine->stack[i];
         if (x.type == TY_STR)
-            printf("\"%s\"\n", (char*)x.data.ptr);
+            printf("%s\n", (char*)x.data.ptr);
         else if (x.type == TY_I64 || x.type == TY_U64)
             printf("%d\n", machine->stack[i].data.i64);
     }
@@ -78,7 +78,6 @@ void JumpTo(Machine* machine, int dest) {
         return;
     }
 
-    ((Instruction*)machine->program)[machine->ip].state = IS_EXECUTED;
     machine->ip = dest;
 }
 
@@ -87,10 +86,6 @@ void DumpProgramToFile(Machine* machine, char* filePath) {
     if (file == NULL) {
         fprintf(stderr, "Error opening file. Path: %s\n", filePath);
         exit(1);
-    }
-
-    for (int i = 0; i < machine->programSize; i++) {
-        ((Instruction*)machine->program)[i].state = IS_PENDING;
     }
 
     fwrite(machine->program, sizeof(Instruction), machine->programSize, file);
@@ -137,12 +132,6 @@ void RunInstructions(Machine* machine) {
     Instruction inst = instructions[machine->ip];
     int jump = FALSE; // if inst.operation is a successful jump
 
-    // instruction already executed. go to the next instruction.
-    if (inst.state == IS_EXECUTED) {
-        machine->ip++;
-        RunInstructions(machine);
-        return;
-    }
     switch (inst.operation) {
     case OP_JLE: {
         JUMP_IF(<=, machine, inst.data.value.data.i64, &jump);
@@ -282,8 +271,6 @@ void RunInstructions(Machine* machine) {
         fprintf(stderr, "error unknown opcode. exiting");
         exit(1);
     }
-
-    inst.state = IS_EXECUTED;
 
     if (jump == FALSE) // was not a jump instruction
         machine->ip++;

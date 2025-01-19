@@ -152,7 +152,7 @@ void SyntaxError(Lexer* lexer, char* optMsg) {
     for (size_t i = 0; i < strlen(line); i++)
         fprintf(stderr, "^");
 
-    fprintf(stderr, "\n");
+    fprintf(stderr, " here\n");
 
     free(line);
     free(lexer->filePath);
@@ -191,7 +191,6 @@ Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer)
     t.text = malloc(sizeof(char) * textLen);
 
     Instruction i = {};
-    i.state = IS_PENDING;
     i.operation = operation;
 
     switch (OperandsExpected(operation)) {
@@ -241,6 +240,7 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
         int stringChars = 1;
         char* string = malloc((STACK_CAPACITY / 4) * sizeof(char));
         int stringIndex = 0;
+        string[stringIndex++] = LXR_STR_CHAR; // set first character to string
 
         lexer->charIndex++;
         // iterate until next string character
@@ -256,6 +256,8 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
             }
             lexer->charIndex++;
         }
+        // add null terminator and string at the end
+        string[stringIndex++] = LXR_STR_CHAR;
         string[stringIndex] = '\0';
 
         // strings in pairs
@@ -314,11 +316,12 @@ void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
 
         // Parse the operand associated with the opcode
         char* operand = ParseOperand(lexer, opcode);
-        if (atoi(operand) == 0 && operand == "0") {
+        long asNumber = atol(operand);
+        if (operand[0] == LXR_STR_CHAR && operand[strlen(operand) - 1] == LXR_STR_CHAR) {
             operands[opIndex].data.ptr = operand;
             operands[opIndex].type = TY_STR;
         } else {
-            operands[opIndex].data.i64 = atoi(operand);
+            operands[opIndex].data.i64 = asNumber;
             operands[opIndex].type = TY_I64;
         }
 
@@ -336,6 +339,16 @@ void SkipSpaces(Lexer* lexer) {
     }
 }
 
+char CurrentChar(Lexer* lexer) { return lexer->text[lexer->charIndex]; }
+
+BOOL UniqueLabelName(Label* label, Lexer* lexer) {
+    for (int i = 0; i < lexer->numLabels; i++) {
+        if (strcmp(label->name, lexer->labels[i].name) == 0)
+            return FALSE;
+    }
+    return TRUE;
+}
+
 Lexer ParseTokens(char* path) {
     // Open file and load its contents
     long tl = 0;
@@ -348,6 +361,8 @@ Lexer ParseTokens(char* path) {
     char keyword[MAX_KEYWORD_LEN] = {0};
     long index = 0;
 
+    Label currLabel = {0};
+
     while (lexer.charIndex <= lexer.textLength && lexer.numTokens <= MAX_PROGRAM_SIZE) {
         if (lexer.state == SKIP_SPACES) {
             if (isblank(lexer.text[lexer.charIndex])) {
@@ -355,6 +370,18 @@ Lexer ParseTokens(char* path) {
                 continue;
             }
             lexer.state = PARSE;
+        }
+
+        if (lexer.text[lexer.charIndex] == LXR_LABEL_START &&
+            (lexer.state != PARSE_KWD || lexer.state != PARSE_OPND)) {
+            if (lexer.state == PARSE_LABEL) // theres another underscore?
+                SyntaxError(&lexer, "unrecognized label token");
+
+            memset(&currLabel, 0, sizeof(Label));
+            currLabel.index = lexer.numTokens;
+            lexer.numLabels++;
+            lexer.state = PARSE_LABEL;
+            lexer.charIndex++;
         }
 
         // is comment
@@ -374,11 +401,36 @@ Lexer ParseTokens(char* path) {
             continue;
         }
 
+        // parse a label
+        if (lexer.state == PARSE_LABEL) {
+            if (lexer.text[lexer.charIndex] == LXR_LABEL_END) {
+                // reached the end of the label
+                if (currLabel.nameLen == 0)
+                    SyntaxError(&lexer, "unnamed label");
+
+                if (UniqueLabelName(&currLabel, &lexer) == FALSE)
+                    SyntaxError(&lexer, "duplicate label name");
+
+                lexer.labels[lexer.numLabels] = currLabel;
+                printf("%d _%s:\n", currLabel.index, currLabel.name);
+                lexer.state = SKIP_LINE;
+                continue;
+            } else if (isalpha(lexer.text[lexer.charIndex])) {
+                // name of the label
+                currLabel.name[currLabel.nameLen++] = lexer.text[lexer.charIndex];
+                lexer.charIndex++;
+                continue;
+            }
+        }
+
         // detect unknonwn characters
         if (lexer.charIndex < lexer.textLength && !isalpha(lexer.text[lexer.charIndex]) &&
             !isspace(lexer.text[lexer.charIndex])) {
-            if (lexer.text[lexer.charIndex] != LXR_STR_CHAR)
-                SyntaxError(&lexer, "unknown character");
+            if (lexer.text[lexer.charIndex] != LXR_STR_CHAR) {
+                char buff[25] = {0};
+                snprintf(buff, 25, "unknown character '%c'", lexer.text[lexer.charIndex]);
+                SyntaxError(&lexer, buff);
+            }
         }
 
         // We are in general parsing state
@@ -407,8 +459,11 @@ Lexer ParseTokens(char* path) {
 
         // get opcode from keyword as an Opcode enum
         Opcode opcode = OpcodeFromKeyword(keyword);
-        if (opcode == OP_UNKNOWN)
-            SyntaxError(&lexer, "unknown opcode");
+        if (opcode == OP_UNKNOWN) {
+            char buff[MAX_KEYWORD_LEN + 20] = {0};
+            snprintf(buff, MAX_KEYWORD_LEN + 20, "unknown opcode '%s'", keyword);
+            SyntaxError(&lexer, buff);
+        }
 
         SkipSpaces(&lexer); // skip any spaces between opcode keyword and operands
 

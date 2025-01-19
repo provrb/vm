@@ -98,13 +98,6 @@ typedef struct {
 
 typedef Data Operand;
 
-/// @brief Decribe the state of an instructions
-/// Whether or not it has be ran or not, useful for jump
-typedef enum {
-    IS_PENDING = 3,
-    IS_EXECUTED = 5,
-} InstState;
-
 /// @brief A struct that represents an assembly instructions
 ///
 /// @param operation: opcode representing an assembly operation
@@ -112,7 +105,6 @@ typedef enum {
 /// register to use
 typedef struct {
     Opcode operation;
-    InstState state; // TRUE or FALSE
     union {
         Operand value;
         struct {
