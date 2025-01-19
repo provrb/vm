@@ -314,7 +314,7 @@ void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
 
         // Parse the operand associated with the opcode
         char* operand = ParseOperand(lexer, opcode);
-        if (atoi(operand) == 0) {
+        if (atoi(operand) == 0 && operand == "0") {
             operands[opIndex].data.ptr = operand;
             operands[opIndex].type = TY_STR;
         } else {
@@ -418,10 +418,6 @@ Lexer ParseTokens(char* path) {
         // Create token from keyword, opcode, and operands
         Token token = NewToken(opcode, strdup(keyword), operands, &lexer);
         lexer.tokens[lexer.numTokens++] = token; // append token to array of tokens
-    }
-
-    for (int i = 0; i < lexer.numTokens; i++) {
-        PrintToken(&lexer.tokens[i]);
     }
 
     printf("Parsed %d instructions.\n", lexer.numTokens);

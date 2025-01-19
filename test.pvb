@@ -1,6 +1,3 @@
-push "i can finally push strings!!!"
-push "hello world!!!""
-push 4
-push 10
-add
+push 2
+jmp 0
 print

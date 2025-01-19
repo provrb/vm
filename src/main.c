@@ -17,12 +17,10 @@ int main() {
     double elapsedTime =
         (double)(endTime.QuadPart - startTime.QuadPart) / frequency.QuadPart * 1000.0;
 
-    printf("Function execution time: %.3f ms\n", elapsedTime);
-    printf("Tokens %d\n", lexer.numTokens);
     Instruction* insts = malloc(lexer.numTokens * sizeof(Instruction));
     for (int i = 0; i < lexer.numTokens; i++) {
-        PrintToken(&lexer.tokens[i]);
         insts[i] = lexer.tokens[i].inst;
+        PrintToken(&lexer.tokens[i]);
     }
 
     Machine* machine = malloc(sizeof(Machine));

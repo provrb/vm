@@ -143,7 +143,6 @@ void RunInstructions(Machine* machine) {
         RunInstructions(machine);
         return;
     }
-    printf("Operation %d\n", inst.operation);
     switch (inst.operation) {
     case OP_JLE: {
         JUMP_IF(<=, machine, inst.data.value.data.i64, &jump);
