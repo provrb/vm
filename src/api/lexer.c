@@ -5,38 +5,65 @@
 #include <stdlib.h>
 #include <string.h>
 
-/// @brief Array of all the keywords, get the opcode or keyword from eachother
-static OpcodeEntry entries[] = {
-    KW_OP_PAIR("push", OP_PUSH), KW_OP_PAIR("pop", OP_POP),   KW_OP_PAIR("mov", OP_MOV),
-    KW_OP_PAIR("swap", OP_SWAP), KW_OP_PAIR("jmp", OP_JMP),   KW_OP_PAIR("jne", OP_JNE),
-    KW_OP_PAIR("je", OP_JE),     KW_OP_PAIR("jg", OP_JG),     KW_OP_PAIR("jge", OP_JGE),
-    KW_OP_PAIR("jl", OP_JL),     KW_OP_PAIR("jle", OP_JLE),   KW_OP_PAIR("add", OP_ADD),
-    KW_OP_PAIR("sub", OP_SUB),   KW_OP_PAIR("mul", OP_MUL),   KW_OP_PAIR("div", OP_DIV),
-    KW_OP_PAIR("mod", OP_MOD),   KW_OP_PAIR("neg", OP_NEG),   KW_OP_PAIR("AND", OP_ANDB),
-    KW_OP_PAIR("OR", OP_ORB),    KW_OP_PAIR("NOT", OP_NOTB),  KW_OP_PAIR("XOR", OP_XORB),
-    KW_OP_PAIR("shl", OP_SHL),   KW_OP_PAIR("shr", OP_SHR),   KW_OP_PAIR("dup", OP_DUP),
-    KW_OP_PAIR("clear", OP_CLR), KW_OP_PAIR("size", OP_SIZE), KW_OP_PAIR("print", OP_PRNT),
-};
+Opcode OpcodeFromKeyword(char* keyword) {
+    if (strcmp(keyword, "nop") == 0)
+        return OP_NOP;
+    else if (strcmp(keyword, "push") == 0)
+        return OP_PUSH;
+    else if (strcmp(keyword, "pop") == 0)
+        return OP_POP;
+    else if (strcmp(keyword, "mov") == 0)
+        return OP_MOV;
+    else if (strcmp(keyword, "swap") == 0)
+        return OP_SWAP;
+    else if (strcmp(keyword, "jmp") == 0)
+        return OP_JMP;
+    else if (strcmp(keyword, "jne") == 0)
+        return OP_JNE;
+    else if (strcmp(keyword, "je") == 0)
+        return OP_JE;
+    else if (strcmp(keyword, "jg") == 0)
+        return OP_JG;
+    else if (strcmp(keyword, "jge") == 0)
+        return OP_JGE;
+    else if (strcmp(keyword, "jl") == 0)
+        return OP_JL;
+    else if (strcmp(keyword, "jle") == 0)
+        return OP_JLE;
+    else if (strcmp(keyword, "add") == 0)
+        return OP_ADD;
+    else if (strcmp(keyword, "sub") == 0)
+        return OP_SUB;
+    else if (strcmp(keyword, "mul") == 0)
+        return OP_MUL;
+    else if (strcmp(keyword, "div") == 0)
+        return OP_DIV;
+    else if (strcmp(keyword, "mod") == 0)
+        return OP_MOD;
+    else if (strcmp(keyword, "neg") == 0)
+        return OP_NEG;
+    else if (strcmp(keyword, "AND") == 0)
+        return OP_ANDB;
+    else if (strcmp(keyword, "OR") == 0)
+        return OP_ORB;
+    else if (strcmp(keyword, "NOT") == 0)
+        return OP_NOTB;
+    else if (strcmp(keyword, "XOR") == 0)
+        return OP_XORB;
+    else if (strcmp(keyword, "shl") == 0)
+        return OP_SHL;
+    else if (strcmp(keyword, "shr") == 0)
+        return OP_SHR;
+    else if (strcmp(keyword, "dup") == 0)
+        return OP_DUP;
+    else if (strcmp(keyword, "clear") == 0)
+        return OP_CLR;
+    else if (strcmp(keyword, "size") == 0)
+        return OP_SIZE;
+    else if (strcmp(keyword, "print") == 0)
+        return OP_PRNT;
 
-char* ParseKeyword(Lexer* lexer) {
-    char* currentString = malloc(MAX_KEYWORD_LEN * sizeof(char));
-    long index = 0;
-
-    while (isalpha(lexer->text[lexer->charIndex])) {
-        currentString[index] = lexer->text[lexer->charIndex];
-        index++;
-
-        lexer->charIndex++;
-    }
-
-    if (index == 0) {
-        // no keyword
-        free(currentString);
-        return NULL;
-    }
-
-    currentString[index] = '\0';
-    return currentString;
+    return OP_UNKNOWN; // if the keyword doesn't match any known opcode
 }
 
 char* GetLine(Lexer* lexer) {
@@ -173,33 +200,6 @@ Token NewToken(Opcode operation, char* keyword, int* operands, Lexer* lexer) {
 
 void PrintToken(Token* token) { printf("%06d: %s\n", token->line, token->text); }
 
-char* KeywordFromOpcode(Opcode opcode) {
-    for (int i = 0; i < sizeof(entries) / sizeof(OpcodeEntry); i++) {
-        if (entries[i].opcode == opcode)
-            return entries[i].keyword;
-    }
-
-    return NULL;
-}
-
-Opcode OpcodeFromKeyword(char* keyword) {
-    for (int i = 0; i < sizeof(entries) / sizeof(OpcodeEntry); i++) {
-        if (strcmp(entries[i].keyword, keyword) == 0)
-            return entries[i].opcode;
-    }
-
-    return OP_UNKNOWN;
-}
-
-void SkipSpaces(Lexer* lexer) {
-    // skip spaces, go until not a space
-    while (isblank(lexer->text[lexer->charIndex])) {
-        // value for token
-        // get numeric value. get all digits
-        lexer->charIndex++;
-    }
-}
-
 char* ParseOperand(Lexer* lexer, Opcode opcode) {
     // check if operand
     if (!isdigit(lexer->text[lexer->charIndex])) {
@@ -227,20 +227,6 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
     return operand;
 }
 
-void SkipLine(Lexer* lexer) {
-    while (lexer->text[lexer->charIndex] != '\n' && lexer->charIndex < lexer->textLength) {
-        lexer->charIndex++;
-    }
-    lexer->lineNumber++;
-}
-
-void CheckForComment(Lexer* lexer) {
-    // check if comment
-    if (lexer->text[lexer->charIndex] == LXR_COMMENT) {
-        SkipLine(lexer);
-    }
-}
-
 void CheckOperandSyntax(Lexer* lexer, Opcode opcode, char* operand) {
     // check if operand we need and have an operand
     if ((OperandsExpected(opcode) != 0) != (operand != NULL)) {
@@ -260,9 +246,8 @@ void ParseOperands(Lexer* lexer, Opcode opcode, int* operands) {
             lexer->charIndex++;
             SkipSpaces(lexer);
         } else if (opIndex > 0 && opcode == OP_MOV &&
-                   lexer->text[lexer->charIndex] != LXR_OPRND_BRK) {
+                   lexer->text[lexer->charIndex] != LXR_OPRND_BRK)
             SyntaxError(lexer, "missing seperator between operands");
-        }
 
         if (opcode == OP_MOV && lexer->text[lexer->charIndex] == LXR_REG_PREFIX) {
             lexer->charIndex++;
@@ -275,17 +260,15 @@ void ParseOperands(Lexer* lexer, Opcode opcode, int* operands) {
         // Check the syntax of the operand
         CheckOperandSyntax(lexer, opcode, operand);
 
-        CheckForComment(lexer); // i dont't know why but we need to check
-                                // for comments twice. it works so.
-
         operands[opIndex] = atoi(operand);
     }
 }
 
-void SkipWhitespace(Lexer* lexer) {
-    while (isspace(lexer->text[lexer->charIndex])) {
-        if (lexer->text[lexer->charIndex] == '\n')
-            lexer->lineNumber++;
+void SkipSpaces(Lexer* lexer) {
+    // skip spaces, go until not a space
+    while (isblank(lexer->text[lexer->charIndex])) {
+        // value for token
+        // get numeric value. get all digits
         lexer->charIndex++;
     }
 }
@@ -297,30 +280,63 @@ void ParseTokens(char* path) {
 
     // Create lexxer struct from known variables
     Lexer lexer = {
-        .lineNumber = 1, .filePath = strdup(path), .text = strdup(text), .textLength = tl};
+        .state = PARSE, .lineNumber = 1, .filePath = path, .text = text, .textLength = tl};
 
-    free(text);
+    char keyword[MAX_KEYWORD_LEN] = {0};
+    long index = 0;
 
-    while (lexer.charIndex < lexer.textLength) {
-        // skip any whitespace and newlines
-        SkipWhitespace(&lexer);
+    while (lexer.charIndex <= lexer.textLength) {
+        if (lexer.state == SKIP_SPACES) {
+            if (isblank(lexer.text[lexer.charIndex])) {
+                lexer.charIndex++;
+                continue;
+            }
+            lexer.state = PARSE;
+        }
 
-        // Check for comments
-        CheckForComment(&lexer);
+        // is comment
+        if (lexer.text[lexer.charIndex] == LXR_COMMENT && lexer.state != SKIP_LINE) {
+            lexer.state = SKIP_LINE;
+            lexer.charIndex++;
+        }
 
-        // Check for unknown characters
-        if (!isalpha(lexer.text[lexer.charIndex]) && !isspace(lexer.text[lexer.charIndex])) {
-            if (lexer.text[lexer.charIndex] == '\0') // last character in file
-                break;
+        // skipping line
+        if (lexer.state == SKIP_LINE && lexer.text[lexer.charIndex] != '\n') {
+            lexer.charIndex++;
+            continue;
+        } else if (lexer.state == SKIP_LINE && lexer.text[lexer.charIndex] == '\n') {
+            lexer.charIndex++;
+            lexer.lineNumber++;
+            lexer.state = PARSE;
+            continue;
+        }
 
+        // detect unknonwn characters
+        if (lexer.charIndex < lexer.textLength && !isalpha(lexer.text[lexer.charIndex]) &&
+            !isspace(lexer.text[lexer.charIndex])) {
             SyntaxError(&lexer, "unknown character");
         }
 
-        // get keyword
-        char* keyword = ParseKeyword(&lexer);
-        if (keyword == NULL) {
-            lexer.charIndex++;
-            continue;
+        // We are in general parsing state
+        if (lexer.state == PARSE) {
+            lexer.state = PARSE_KWD;
+            index = 0;
+            memset(keyword, 0, MAX_KEYWORD_LEN);
+        }
+
+        // Parse a keyword
+        if (lexer.state == PARSE_KWD) {
+            if (lexer.charIndex < lexer.textLength && isalpha(lexer.text[lexer.charIndex])) {
+                keyword[index++] = lexer.text[lexer.charIndex];
+                lexer.charIndex++;
+                continue;
+            } else if (index > 0) {
+                keyword[index] = '\0';
+                lexer.state = PARSE;
+            } else if (index == 0) {
+                lexer.charIndex++;
+                continue;
+            }
         }
 
         // get opcode from keyword as an Opcode enum
@@ -328,22 +344,20 @@ void ParseTokens(char* path) {
         if (opcode == OP_UNKNOWN)
             SyntaxError(&lexer, "unknown opcode");
 
-        // Skip whitespace between opcode and operand
-        SkipSpaces(&lexer); // skip any spaces between opcode
-                            // keyword and operands
+        SkipSpaces(&lexer); // skip any spaces between opcode keyword and operands
 
         int operands[2] = {0};
         ParseOperands(&lexer, opcode, operands);
 
         // Create token from keyword, opcode, and operands
-        Token token = NewToken(opcode, keyword, operands, &lexer);
+        Token token = NewToken(opcode, strdup(keyword), operands, &lexer);
         lexer.tokens[lexer.numTokens++] = token; // append token to array of tokens
-
-        // move to the next character
-        lexer.charIndex++;
     }
 
     for (int ti = 0; ti < lexer.numTokens; ti++) {
         PrintToken(&lexer.tokens[ti]);
     }
+
+    free(text);
+    free(path);
 }

@@ -28,12 +28,22 @@ typedef struct {
     int line;
 } Token;
 
+typedef enum {
+    NONE = 0,
+    PARSE,
+    PARSE_KWD,
+    PARSE_OPND,
+    SKIP_LINE,
+    SKIP_SPACES,
+} LexerState;
+
 typedef struct {
     long charIndex;
     char* text;
     long textLength;
     long lineNumber;
     char* filePath;
+    LexerState state;
     Token tokens[MAX_PROGRAM_SIZE];
     int numTokens;
 } Lexer;
@@ -92,10 +102,6 @@ char* GetLine(Lexer* lexer);
 /// @brief Skip over any characters until the \n character is reached
 /// @param lexer - current lexer context
 void SkipLine(Lexer* lexer);
-
-/// @brief Disregard and skip over any whitespace
-/// @param lexer - current lexer context
-void SkipWhitespace(Lexer* lexer);
 
 /// Check if the current character is a comment escape character
 /// if so, disregard everything after the comment character on the line
