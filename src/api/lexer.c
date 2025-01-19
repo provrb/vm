@@ -62,6 +62,8 @@ Opcode OpcodeFromKeyword(char* keyword) {
         return OP_SIZE;
     else if (strcmp(keyword, "print") == 0)
         return OP_PRNT;
+    else if (strcmp(keyword, "exit") == 0)
+        return OP_EXIT;
 
     return OP_UNKNOWN; // if the keyword doesn't match any known opcode
 }

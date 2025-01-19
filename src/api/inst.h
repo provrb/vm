@@ -73,7 +73,9 @@ typedef enum {
     OP_DUP,
     OP_CLR,
     OP_SIZE,
-    OP_PRNT
+    OP_PRNT,
+
+    OP_EXIT,
 } Opcode;
 
 typedef enum {

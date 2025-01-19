@@ -5,6 +5,6 @@ _start: ; this is the entry point of our application
 
 _text:
     push 4 ; add 4 to the stack
-    push 9
-    add
+    push 3 ;.2 todo: add float
+    push "'hi'" ; todo: add escaping so you can put strings in strings
     print
