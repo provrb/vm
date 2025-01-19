@@ -89,24 +89,10 @@ char* ParseOperand(Lexer* lexer, Opcode opcode);
 /// @param operands - out array that stores the number operands
 void ParseOperands(Lexer* lexer, Opcode opcode, int* operands);
 
-/// @brief Parse the current word as a language keyword
-/// @param lexer - current lexer context
-/// @return - string keyword
-char* ParseKeyword(Lexer* lexer);
-
 /// @brief Get all text on a line number
 /// @param lexer - current lexer context
 /// @return - all text on the current line number or empty if error
 char* GetLine(Lexer* lexer);
-
-/// @brief Skip over any characters until the \n character is reached
-/// @param lexer - current lexer context
-void SkipLine(Lexer* lexer);
-
-/// Check if the current character is a comment escape character
-/// if so, disregard everything after the comment character on the line
-/// @param lexer - current lexer context
-void CheckForComment(Lexer* lexer);
 
 /// @brief
 /// @param lexer
@@ -131,11 +117,6 @@ Token NewToken(Opcode operation, char* keyword, int* operands, Lexer* lexer);
 /// @param keyword - string to convert into an opcode
 /// @return - Opcode representation of keyword or OP_UNKNOWN if failed
 Opcode OpcodeFromKeyword(char* keyword);
-
-/// @brief Get the string keyword from an enum Opcode
-/// @param opcode - opcode to get the keyword of
-/// @return - keyword (i.e "push")
-char* KeywordFromOpcode(Opcode opcode);
 
 /// @brief Read a file and try to make tokens out of text
 /// @param file - file path to read
