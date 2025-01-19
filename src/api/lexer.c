@@ -159,11 +159,31 @@ void SyntaxError(Lexer* lexer, char* optMsg) {
     exit(-1);
 }
 
+void TypeError(Lexer* lexer, char* optMsg) {
+    char* line = GetLine(lexer);
+    fprintf(stderr, "%s:%ld:%ld: type error", lexer->filePath, lexer->lineNumber, lexer->charIndex);
+
+    if (optMsg) // include optional error message
+        fprintf(stderr, " - %s", optMsg);
+
+    fprintf(stderr, "\n\t%s\n\t", line);
+
+    // print a ^ underneath the bad line
+    for (size_t i = 0; i < strlen(line); i++)
+        fprintf(stderr, "^");
+
+    fprintf(stderr, "\n");
+
+    free(line);
+    free(lexer->filePath);
+    exit(-1);
+}
+
 // 'keyword' and 'operand' will both be free'd and put into Token::text
-Token NewToken(Opcode operation, char* keyword, int* operands, Lexer* lexer) {
+Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer) {
     // only one operand operations supported rn
     // get operation from keyword
-    int textLen = snprintf(NULL, 0, "%s r%d, r%d", keyword, operands[0], operands[1]) + 1;
+    int textLen = 1024;
 
     Token t = {0};
     t.line = lexer->lineNumber;
@@ -176,14 +196,21 @@ Token NewToken(Opcode operation, char* keyword, int* operands, Lexer* lexer) {
 
     switch (OperandsExpected(operation)) {
     case 2:
-        i.data.registers.src = operands[0];
-        i.data.registers.dest = operands[1];
+        if (operands[0].type != TY_I64 || operands[1].type != TY_I64)
+            TypeError(lexer, "expected I64 operand");
+
+        i.data.registers.src = operands[0].data.i64;
+        i.data.registers.dest = operands[1].data.i64;
         snprintf(t.text, textLen, "%s r%d, r%d", keyword, i.data.registers.src,
                  i.data.registers.dest);
         break;
     case 1:
         i.data.value = operands[0];
-        snprintf(t.text, textLen, "%s %d", keyword, i.data.value);
+        if (operands[0].type == TY_STR)
+            snprintf(t.text, textLen, "%s \"%s\"", keyword, (char*)i.data.value.data.ptr);
+        else if (operands[0].type == TY_I64 || operands[0].type == TY_U64)
+            snprintf(t.text, textLen, "%s %ld", keyword, i.data.value.data.i64);
+
         break;
     case 0:
         snprintf(t.text, textLen, "%s", keyword);
@@ -201,11 +228,42 @@ Token NewToken(Opcode operation, char* keyword, int* operands, Lexer* lexer) {
 void PrintToken(Token* token) { printf("%06d: %s\n", token->line, token->text); }
 
 char* ParseOperand(Lexer* lexer, Opcode opcode) {
+
     // check if operand
     if (!isdigit(lexer->text[lexer->charIndex])) {
-        if (opcode != OP_MOV && lexer->text[lexer->charIndex] != LXR_REG_PREFIX) {
+        if (opcode != OP_MOV && lexer->text[lexer->charIndex] != LXR_REG_PREFIX &&
+            opcode != OP_PUSH && lexer->text[lexer->charIndex] != LXR_STR_CHAR) {
             return NULL; // Return NULL for invalid operand
         }
+    }
+
+    if (opcode == OP_PUSH && lexer->text[lexer->charIndex] == LXR_STR_CHAR) {
+        int stringChars = 1;
+        char* string = malloc((STACK_CAPACITY / 4) * sizeof(char));
+        int stringIndex = 0;
+
+        lexer->charIndex++;
+        // iterate until next string character
+        while (lexer->text[lexer->charIndex] != '\0') {
+            if (lexer->text[lexer->charIndex] == LXR_STR_CHAR) {
+                stringChars++;
+                if (stringChars % 2 == 0) {
+                    lexer->charIndex++; // Closing quotation mark
+                    break;
+                }
+            } else {
+                string[stringIndex++] = lexer->text[lexer->charIndex];
+            }
+            lexer->charIndex++;
+        }
+        string[stringIndex] = '\0';
+
+        // strings in pairs
+        if (stringChars % 2 != 0) {
+            free(string);
+            SyntaxError(lexer, "missing quotation mark");
+        }
+        return string;
     }
 
     int operandLen = 0;
@@ -239,7 +297,7 @@ void CheckOperandSyntax(Lexer* lexer, Opcode opcode, char* operand) {
     }
 }
 
-void ParseOperands(Lexer* lexer, Opcode opcode, int* operands) {
+void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
     // parse 2 operands maximum
     for (int opIndex = 0; opIndex < OperandsExpected(opcode); opIndex++) {
         if (lexer->text[lexer->charIndex] == LXR_OPRND_BRK) { // ","
@@ -249,18 +307,23 @@ void ParseOperands(Lexer* lexer, Opcode opcode, int* operands) {
                    lexer->text[lexer->charIndex] != LXR_OPRND_BRK)
             SyntaxError(lexer, "missing seperator between operands");
 
-        if (opcode == OP_MOV && lexer->text[lexer->charIndex] == LXR_REG_PREFIX) {
+        if (opcode == OP_MOV && lexer->text[lexer->charIndex] == LXR_REG_PREFIX)
             lexer->charIndex++;
-        } else if (opcode == OP_MOV && lexer->text[lexer->charIndex] != LXR_REG_PREFIX)
+        else if (opcode == OP_MOV && lexer->text[lexer->charIndex] != LXR_REG_PREFIX)
             SyntaxError(lexer, "no register prefix");
 
         // Parse the operand associated with the opcode
         char* operand = ParseOperand(lexer, opcode);
+        if (atoi(operand) == 0) {
+            operands[opIndex].data.ptr = operand;
+            operands[opIndex].type = TY_STR;
+        } else {
+            operands[opIndex].data.i64 = atoi(operand);
+            operands[opIndex].type = TY_I64;
+        }
 
         // Check the syntax of the operand
         CheckOperandSyntax(lexer, opcode, operand);
-
-        operands[opIndex] = atoi(operand);
     }
 }
 
@@ -273,7 +336,7 @@ void SkipSpaces(Lexer* lexer) {
     }
 }
 
-void ParseTokens(char* path) {
+Lexer ParseTokens(char* path) {
     // Open file and load its contents
     long tl = 0;
     char* text = ReadFromFile(path, &tl);
@@ -314,7 +377,8 @@ void ParseTokens(char* path) {
         // detect unknonwn characters
         if (lexer.charIndex < lexer.textLength && !isalpha(lexer.text[lexer.charIndex]) &&
             !isspace(lexer.text[lexer.charIndex])) {
-            SyntaxError(&lexer, "unknown character");
+            if (lexer.text[lexer.charIndex] != LXR_STR_CHAR)
+                SyntaxError(&lexer, "unknown character");
         }
 
         // We are in general parsing state
@@ -348,7 +412,7 @@ void ParseTokens(char* path) {
 
         SkipSpaces(&lexer); // skip any spaces between opcode keyword and operands
 
-        int operands[2] = {0};
+        Operand operands[2] = {0};
         ParseOperands(&lexer, opcode, operands);
 
         // Create token from keyword, opcode, and operands
@@ -356,12 +420,13 @@ void ParseTokens(char* path) {
         lexer.tokens[lexer.numTokens++] = token; // append token to array of tokens
     }
 
-    // for (int i = 0; i < lexer.numTokens; i++) {
-    //     PrintToken(&lexer.tokens[i]);
-    // }
+    for (int i = 0; i < lexer.numTokens; i++) {
+        PrintToken(&lexer.tokens[i]);
+    }
 
     printf("Parsed %d instructions.\n", lexer.numTokens);
 
     free(text);
     free(path);
+    return lexer;
 }

@@ -10,6 +10,6 @@ SRC="$SRC_DIR/*.c $API_DIR/*.c"
 clear # clear output
 rm -f "$OUT"
 find . -name "*.c" -o -name "*.h" | xargs clang-format -i
-gcc $SRC -o "$OUT" -Wall -Wextra
+gcc $SRC -o "$OUT"
 chmod +x "$OUT"
 ./"$OUT"

@@ -8,10 +8,12 @@
 #define MAX_PROGRAM_SIZE 2048
 #define MAX_KEYWORD_LEN 35 // keywords should NOT exceed this length
 #define MAX_OPERAND_LEN 50 // worst case scenario you have two LLONG_MAX
+#define MAX_STRING_LEN 2048
 #define LXR_MAX_LINE_LEN MAX_KEYWORD_LEN + MAX_OPERAND_LEN // maximum length a line can be lexer
 #define LXR_COMMENT ';'    // a command in the language, like c has // for comment
 #define LXR_OPRND_BRK ','  // character that seperates operands
 #define LXR_REG_PREFIX 'r' // register prefix for operations like mov
+#define LXR_STR_CHAR '"'
 
 // booleans
 #define FALSE 0

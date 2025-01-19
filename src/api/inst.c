@@ -4,6 +4,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+Data DATA_USING_I64(long val) {
+    Data d = {.data.i64 = val, .type = TY_I64};
+    return d;
+}
+
+Data DATA_USING_U64(unsigned long val) {
+    Data d = {.data.u64 = val, .type = TY_U64};
+    return d;
+}
+
+Data DATA_USING_STR(char* val) {
+    Data d = {.data.ptr = val, .type = TY_STR};
+    return d;
+}
+
+Data DATA_USING_PTR(void* val) {
+    Data d = {.data.ptr = val, .type = TY_ANY};
+    return d;
+}
+
 void Move(Machine* machine, int src, int dest) {
     if (machine->stackSize <= src || dest < 0 || src < 0 || machine->stackSize <= dest) {
         fprintf(stderr, "Trying to move value from %d to %d. Out-of-bounds.\n", src, dest);
@@ -12,7 +32,7 @@ void Move(Machine* machine, int src, int dest) {
     machine->stack[dest] = machine->stack[src];
 }
 
-void Push(Machine* machine, int value) {
+void Push(Machine* machine, Data value) {
     if (machine->stackSize >= STACK_CAPACITY) {
         fprintf(stderr, "Stack overflow when trying to push value to stack: %d\n", value);
         exit(1);
@@ -27,7 +47,7 @@ int Pop(Machine* machine) {
         exit(1);
     }
 
-    return machine->stack[--machine->stackSize];
+    return machine->stack[--machine->stackSize].data.i64;
 }
 
 void ClearStack(Machine* machine) {
@@ -44,7 +64,11 @@ void ClearStack(Machine* machine) {
 void PrintStack(Machine* machine) {
     printf("--- Stack Start ---\n");
     for (int i = machine->stackSize - 1; i >= 0; i--) {
-        printf("%d\n", machine->stack[i]);
+        Data x = machine->stack[i];
+        if (x.type == TY_STR)
+            printf("\"%s\"\n", (char*)x.data.ptr);
+        else if (x.type == TY_I64 || x.type == TY_U64)
+            printf("%d\n", machine->stack[i].data.i64);
     }
     printf("--- Stack End   ---\n");
 }
@@ -119,60 +143,60 @@ void RunInstructions(Machine* machine) {
         RunInstructions(machine);
         return;
     }
-
     printf("Operation %d\n", inst.operation);
     switch (inst.operation) {
     case OP_JLE: {
-        JUMP_IF(<=, machine, inst.data.value, &jump);
+        JUMP_IF(<=, machine, inst.data.value.data.i64, &jump);
         break;
     }
     case OP_JL: {
-        JUMP_IF(<, machine, inst.data.value, &jump);
+        JUMP_IF(<, machine, inst.data.value.data.i64, &jump);
         break;
     }
     case OP_JGE: {
-        JUMP_IF(>=, machine, inst.data.value, &jump);
+        JUMP_IF(>=, machine, inst.data.value.data.i64, &jump);
         break;
     }
     case OP_JG: {
-        JUMP_IF(>, machine, inst.data.value, &jump);
+        JUMP_IF(>, machine, inst.data.value.data.i64, &jump);
         break;
     }
     case OP_JE: {
-        JUMP_IF(==, machine, inst.data.value, &jump);
+        JUMP_IF(==, machine, inst.data.value.data.i64, &jump);
         break;
     }
     case OP_JNE: {
-        JUMP_IF(!=, machine, inst.data.value, &jump);
+        JUMP_IF(!=, machine, inst.data.value.data.i64, &jump);
         break;
     }
     case OP_JMP:
         jump = TRUE;
-        JumpTo(machine, inst.data.value);
+        JumpTo(machine, inst.data.value.data.i64);
         break;
     case OP_NOP:
         break;
     case OP_SHL: {
         int val = Pop(machine);
-        Push(machine, val << inst.data.value);
+
+        Push(machine, DATA_USING_I64(val << inst.data.value.data.i64));
         break;
     }
     case OP_SHR: {
         int val = Pop(machine);
-        Push(machine, val >> inst.data.value);
+        Push(machine, DATA_USING_I64(val >> inst.data.value.data.i64));
         break;
     }
     case OP_SWAP: {
         int first = Pop(machine);
         int second = Pop(machine);
-        Push(machine, second);
-        Push(machine, first);
+        Push(machine, DATA_USING_I64(second));
+        Push(machine, DATA_USING_I64(first));
         break;
     }
     case OP_MUL: {
         int a = Pop(machine);
         int b = Pop(machine);
-        Push(machine, a * b);
+        Push(machine, DATA_USING_I64(a * b));
         break;
     }
     case OP_DUP:
@@ -181,30 +205,30 @@ void RunInstructions(Machine* machine) {
     case OP_ANDB: {
         int b = Pop(machine);
         int a = Pop(machine);
-        Push(machine, a & b);
+        Push(machine, DATA_USING_I64(a & b));
         break;
     }
     case OP_XORB: {
         int b = Pop(machine);
         int a = Pop(machine);
-        Push(machine, a ^ b);
+        Push(machine, DATA_USING_I64(a ^ b));
         break;
     }
     case OP_NOTB: {
         int a = Pop(machine);
-        Push(machine, ~a);
+        Push(machine, DATA_USING_I64(~a));
         break;
     }
     case OP_ORB: {
         int b = Pop(machine);
         int a = Pop(machine);
-        Push(machine, a | b);
+        Push(machine, DATA_USING_I64(a | b));
         break;
     }
     case OP_NEG: {
         int val = Pop(machine);
         val *= -1;
-        Push(machine, val);
+        Push(machine, DATA_USING_I64(val));
         break;
     }
     case OP_PUSH:
@@ -216,11 +240,11 @@ void RunInstructions(Machine* machine) {
     case OP_ADD: {
         int a = Pop(machine);
         int b = Pop(machine);
-        Push(machine, a + b);
+        Push(machine, DATA_USING_I64(a + b));
         break;
     }
     case OP_DIV: {
-        if (machine->stack[machine->stackSize] == 0) {
+        if (machine->stack[machine->stackSize].data.i64 == 0) {
             fprintf(stderr, "Divide by zero error.\n");
             exit(1);
         }
@@ -228,13 +252,13 @@ void RunInstructions(Machine* machine) {
         int b = Pop(machine);
         int a = Pop(machine); // you put the bigger number first in div
 
-        Push(machine, a / b);
+        Push(machine, DATA_USING_I64(a / b));
         break;
     }
     case OP_MOD: {
         int b = Pop(machine);
         int a = Pop(machine);
-        Push(machine, a % b);
+        Push(machine, DATA_USING_I64(a % b));
         break;
     }
     case OP_MOV:
@@ -243,14 +267,14 @@ void RunInstructions(Machine* machine) {
     case OP_SUB: {
         int b = Pop(machine);
         int a = Pop(machine);
-        Push(machine, a - b);
+        Push(machine, DATA_USING_I64(a - b));
         break;
     }
     case OP_CLR:
         ClearStack(machine);
         break;
     case OP_SIZE:
-        Push(machine, machine->stackSize);
+        Push(machine, DATA_USING_I64(machine->stackSize));
         break;
     case OP_PRNT:
         PrintStack(machine);

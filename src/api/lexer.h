@@ -67,6 +67,7 @@ char* ReadFromFile(char* path, long* stringLength);
 /// or basic syntax errors
 
 void SyntaxError(Lexer* lexer, char* optMsg);
+void TypeError(Lexer* lexer, char* optMsg);
 
 /// Lexical analysis
 ///
@@ -87,7 +88,7 @@ char* ParseOperand(Lexer* lexer, Opcode opcode);
 /// @param lexer - current lexer context
 /// @param opcode - opcode
 /// @param operands - out array that stores the number operands
-void ParseOperands(Lexer* lexer, Opcode opcode, int* operands);
+void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands);
 
 /// @brief Get all text on a line number
 /// @param lexer - current lexer context
@@ -111,7 +112,7 @@ int OperandsExpected(Opcode op);
 /// @param operands - list of operands
 /// @param lexer - lexer context
 /// @return - token
-Token NewToken(Opcode operation, char* keyword, int* operands, Lexer* lexer);
+Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer);
 
 /// @brief Get an enum Opcode from a string, keyword
 /// @param keyword - string to convert into an opcode
@@ -120,7 +121,7 @@ Opcode OpcodeFromKeyword(char* keyword);
 
 /// @brief Read a file and try to make tokens out of text
 /// @param file - file path to read
-void ParseTokens(char* file);
+Lexer ParseTokens(char* path);
 
 /// @brief Print all information about a token
 /// @param token - token to print information about

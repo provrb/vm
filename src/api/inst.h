@@ -7,7 +7,7 @@
 #ifndef INST_H
 #define INST_H
 
-#include "machine.h" // Machine struct definition
+#include "macros.h"
 
 /// Compare last two values in stack based off operator
 /// if the expression evaluates to true, jump to 'addr' and set res to TRUE
@@ -25,12 +25,14 @@
             exit(1);                                                                               \
         }                                                                                          \
                                                                                                    \
-        const int a = machine->stack[machine->stackSize - 2];                                      \
-        const int b = machine->stack[machine->stackSize - 1];                                      \
+        const Data a = machine->stack[machine->stackSize - 2];                                     \
+        const Data b = machine->stack[machine->stackSize - 1];                                     \
                                                                                                    \
-        if ((a) operator(b)) {                                                                     \
-            JumpTo(machine, addr);                                                                 \
-            *res = TRUE;                                                                           \
+        if ((a.type == TY_U64 || a.type == TY_I64) && (b.type == TY_U64 || b.type == TY_I64)) {    \
+            if ((a.data.i64) operator(b.data.i64)) {                                               \
+                JumpTo(machine, addr);                                                             \
+                *res = TRUE;                                                                       \
+            }                                                                                      \
         }                                                                                          \
     }
 
@@ -74,6 +76,28 @@ typedef enum {
     OP_PRNT
 } Opcode;
 
+typedef enum {
+    TY_U64,
+    TY_I64,
+    TY_BYTE,
+    TY_STR,
+    TY_ANY,
+} DataType;
+
+typedef union {
+    unsigned long u64;
+    long i64;
+    char byte;
+    void* ptr;
+} Cell;
+
+typedef struct {
+    Cell data;
+    DataType type;
+} Data;
+
+typedef Data Operand;
+
 /// @brief Decribe the state of an instructions
 /// Whether or not it has be ran or not, useful for jump
 typedef enum {
@@ -90,13 +114,30 @@ typedef struct {
     Opcode operation;
     InstState state; // TRUE or FALSE
     union {
-        int value;
+        Operand value;
         struct {
             int src;
             int dest;
         } registers;
     } data;
 } Instruction;
+
+typedef struct {
+    Data stack[STACK_CAPACITY];
+    int stackSize;
+
+    Instruction* program; // this should be an array of Instruction
+    int programSize;
+    int ip; // instruction
+} Machine;
+
+Data DATA_USING_I64(long val);
+
+Data DATA_USING_U64(unsigned long val);
+
+Data DATA_USING_STR(char* val);
+
+Data DATA_USING_PTR(void* val);
 
 /// @brief Move the value on stack at index 'src' to index 'dest'
 /// @param machine - machine to perform move operation on
@@ -107,7 +148,7 @@ void Move(Machine* machine, int src, int dest);
 /// @brief Push a value 'value' to the machines stack
 /// @param machine - machine to append 'value' to its stack
 /// @param value - number to append to machines stack
-void Push(Machine* machine, int value);
+void Push(Machine* machine, Data value);
 
 /// @brief Remove the last element on the stack
 /// @param machine - machine to perform the operation on
