@@ -222,9 +222,12 @@ void RunInstructions(Machine* machine) {
     case OP_PUSH:
         Push(machine, inst.data.value);
         break;
-    case OP_POP:
-        Pop(machine);
+    case OP_POP: {
+        int val = Pop(machine);
+        // todo: check if register is stored
+        machine->memory[inst.data.registers.dest] = DATA_USING_I64(val);
         break;
+    }
     case OP_ADD: {
         int a = Pop(machine);
         int b = Pop(machine);

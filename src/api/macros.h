@@ -5,6 +5,7 @@
 /// everytime you have to push a value, you can simply use an instruction macro.
 
 #define STACK_CAPACITY 2048
+#define MEMORY_CAPACITY 2048
 #define MAX_PROGRAM_SIZE 2048
 #define MAX_KEYWORD_LEN 35 // keywords should NOT exceed this length
 #define MAX_OPERAND_LEN 50 // worst case scenario you have two LLONG_MAX
@@ -30,7 +31,6 @@ typedef int BOOL;
 #define TRUE 1
 
 /// Insturction macros
-
 #define INST_NOP() {.operation = OP_NOP}
 
 #define INST_PUSH(a) {.operation = OP_PUSH, .data.value = a}

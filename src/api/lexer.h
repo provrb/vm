@@ -15,6 +15,30 @@
 #include "inst.h"   // for Instruction and Opcode
 #include "macros.h" // for size defintions, i.e MAX_KEYWORD_LEN
 
+// General purpose register indexes 
+// for accessing memory in a Machine
+typedef enum {
+    REG_UNKNOWN = -1,
+    RAX = 0x00,
+    RBX = 0x10,
+    RCX = 0x20,
+    RDX = 0x30,
+    R8 = 0x40,
+    R9 = 0x50,
+    R10 = 0x60,
+    R11 = 0x70,
+    R12 = 0x80,
+    R13 = 0x90,
+    R14 = 0xA0,
+    R15 = 0xB0,
+} Register;
+
+typedef enum {
+    ERR_INVALID_SYNTAX,
+    ERR_RUNTIME_EXCEPTION,
+    ERR_TYPE_ERROR,
+} Error;
+
 /// Represents a label
 /// e.g _start:
 /// always starts with 'LXR_LABEL_

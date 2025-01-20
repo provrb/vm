@@ -68,6 +68,36 @@ Opcode OpcodeFromKeyword(char* keyword) {
     return OP_UNKNOWN; // if the keyword doesn't match any known opcode
 }
 
+// check if a string is the name of a valid register
+Register IsRegister(char* operand) {
+    if (strcmp("rax", operand) == 0)
+        return RAX;
+    else if (strcmp("rbx", operand) == 0)
+        return RBX;
+    else if (strcmp("rcx", operand) == 0)
+        return RCX;
+    else if (strcmp("rdx", operand) == 0)
+        return RDX;
+    else if (strcmp("r8", operand) == 0) 
+        return R8;
+    else if (strcmp("r9", operand) == 0) 
+        return R9;
+    else if (strcmp("r10", operand) == 0)
+        return R10;
+    else if (strcmp("r11", operand) == 0)
+        return R11;
+    else if (strcmp("r12", operand) == 0)
+        return R12;
+    else if (strcmp("r13", operand) == 0)
+        return R13;
+    else if (strcmp("r14", operand) == 0)
+        return R14;
+    else if (strcmp("r15", operand) == 0)
+        return R15;
+    
+    return REG_UNKNOWN; // unknown
+}
+
 char* GetLine(Lexer* lexer) {
     long start = lexer->charIndex;
     long end = lexer->charIndex;
@@ -157,8 +187,7 @@ void SyntaxError(Lexer* lexer, char* optMsg) {
     fprintf(stderr, " here\n");
 
     free(line);
-    free(lexer->filePath);
-    exit(-1);
+    exit(ERR_INVALID_SYNTAX);
 }
 
 void TypeError(Lexer* lexer, char* optMsg) {
@@ -177,14 +206,11 @@ void TypeError(Lexer* lexer, char* optMsg) {
     fprintf(stderr, "\n");
 
     free(line);
-    free(lexer->filePath);
-    exit(-1);
+    exit(ERR_TYPE_ERROR);
 }
 
 // 'keyword' and 'operand' will both be free'd and put into Token::text
 Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer) {
-    // only one operand operations supported rn
-    // get operation from keyword
     int textLen = 1024;
 
     Token t = {0};
@@ -214,6 +240,13 @@ Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer)
 
         break;
     case 0:
+        // pop can have an optional operand
+        if (i.operation == OP_POP && operands[0].type == TY_STR){
+            snprintf(t.text, textLen, "%s %s", keyword, (char*)operands[0].data.ptr);
+            i.data.registers.dest = (int)IsRegister((char*)operands[0].data.ptr);
+            break;
+        }
+        
         snprintf(t.text, textLen, "%s", keyword);
         break;
     default:
@@ -232,10 +265,22 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
 
     // check if operand
     if (!isdigit(lexer->text[lexer->charIndex])) {
-        if (opcode != OP_MOV && lexer->text[lexer->charIndex] != LXR_REG_PREFIX &&
+        if (opcode != OP_POP && opcode != OP_MOV && lexer->text[lexer->charIndex] != LXR_REG_PREFIX &&
             opcode != OP_PUSH && lexer->text[lexer->charIndex] != LXR_STR_CHAR) {
             return NULL; // Return NULL for invalid operand
         }
+    }
+
+    if (opcode == OP_POP) {
+        char* reg = malloc(sizeof(4) * sizeof(char));
+        int regStrIndex = 0;
+
+        while (!isblank(lexer->text[lexer->charIndex]) && lexer->text[lexer->charIndex] != LXR_COMMENT)
+            reg[regStrIndex++] = lexer->text[lexer->charIndex++];
+        
+        reg[regStrIndex] = '\0';
+        printf("%s\n", reg);
+        return reg;
     }
 
     if (opcode == OP_PUSH && lexer->text[lexer->charIndex] == LXR_STR_CHAR) {
@@ -301,8 +346,43 @@ void CheckOperandSyntax(Lexer* lexer, Opcode opcode, char* operand) {
     }
 }
 
+void ToOperandType(Operand* operands, int index, char* operand) {
+    long asNumber = atol(operand);
+
+    if (operand[0] == LXR_STR_CHAR && operand[strlen(operand) - 1] == LXR_STR_CHAR) {
+        operands[index].data.ptr = operand;
+        operands[index].type = TY_STR;
+    } else {
+        operands[index].data.i64 = asNumber;
+        operands[index].type = TY_I64;
+    }
+}
+
 void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
     // parse 2 operands maximum
+    if ( opcode == OP_POP ) {
+        // check if theres an operand
+        char* operand = ParseOperand(lexer, opcode);
+        if (operand == NULL) {
+            printf("We don't wan't to save the value.\n");
+            return; // no operand for pop, we're just deleted it
+        } 
+
+        if (strlen(operand) == 0)
+            return;
+
+        Register reg = IsRegister(operand);
+        if (reg == REG_UNKNOWN)
+            SyntaxError(lexer, "invalid register");
+    
+        operands[0].data.ptr = (char*)operand;
+        operands[0].type = TY_STR;
+
+        printf("Register to pop value to '%s'\n", (char*)operands[0].data.ptr);
+
+        return;
+    }
+
     for (int opIndex = 0; opIndex < OperandsExpected(opcode); opIndex++) {
         if (lexer->text[lexer->charIndex] == LXR_OPRND_BRK) { // ","
             lexer->charIndex++;
@@ -318,14 +398,7 @@ void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
 
         // Parse the operand associated with the opcode
         char* operand = ParseOperand(lexer, opcode);
-        long asNumber = atol(operand);
-        if (operand[0] == LXR_STR_CHAR && operand[strlen(operand) - 1] == LXR_STR_CHAR) {
-            operands[opIndex].data.ptr = operand;
-            operands[opIndex].type = TY_STR;
-        } else {
-            operands[opIndex].data.i64 = asNumber;
-            operands[opIndex].type = TY_I64;
-        }
+        ToOperandType(operands, opIndex, operand);
 
         // Check the syntax of the operand
         CheckOperandSyntax(lexer, opcode, operand);

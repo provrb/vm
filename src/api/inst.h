@@ -79,6 +79,7 @@ typedef enum {
 } Opcode;
 
 typedef enum {
+    TY_EMPTY,
     TY_U64,
     TY_I64,
     TY_BYTE,
@@ -120,17 +121,18 @@ typedef struct {
     Data stack[STACK_CAPACITY];
     int stackSize;
 
+    Data memory[MEMORY_CAPACITY];
+    int memorySize;
+
     Instruction* program; // this should be an array of Instruction
     int programSize;
     int ip; // instruction
 } Machine;
 
+// Create Data structures using different available types
 Data DATA_USING_I64(long val);
-
 Data DATA_USING_U64(unsigned long val);
-
 Data DATA_USING_STR(char* val);
-
 Data DATA_USING_PTR(void* val);
 
 /// @brief Move the value on stack at index 'src' to index 'dest'
