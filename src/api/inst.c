@@ -26,7 +26,7 @@ Data DATA_USING_PTR(void* val) {
 
 void Move(Machine* machine, int src, int dest) {
     if (machine->stackSize <= src || dest < 0 || src < 0 || machine->stackSize <= dest) {
-        fprintf(stderr, "Trying to move value from %d to %d. Out-of-bounds.\n", src, dest);
+        fprintf(stderr, "Trying to move value from %d to %d. Out-of-bounds. Aborted.\n", src, dest);
         exit(1);
     }
     machine->stack[dest] = machine->stack[src];
@@ -34,7 +34,7 @@ void Move(Machine* machine, int src, int dest) {
 
 void Push(Machine* machine, Data value) {
     if (machine->stackSize >= STACK_CAPACITY) {
-        fprintf(stderr, "Stack overflow when trying to push value to stack: %d\n", value);
+        fprintf(stderr, "Stack overflow when trying to push value to stack. Aborted.\n");
         exit(1);
     }
 
@@ -43,7 +43,7 @@ void Push(Machine* machine, Data value) {
 
 int Pop(Machine* machine) {
     if (machine->stackSize <= 0) {
-        fprintf(stderr, "Stack underflow when trying to pop from stack.\n");
+        fprintf(stderr, "Stack underflow when trying to pop from stack. Aborted.\n");
         exit(1);
     }
 
@@ -68,7 +68,7 @@ void PrintStack(Machine* machine) {
         if (x.type == TY_STR)
             printf("%s\n", (char*)x.data.ptr);
         else if (x.type == TY_I64 || x.type == TY_U64)
-            printf("%d\n", machine->stack[i].data.i64);
+            printf("%ld\n", machine->stack[i].data.i64);
     }
     printf("--- Stack End   ---\n");
 }

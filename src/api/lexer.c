@@ -344,7 +344,7 @@ void SkipSpaces(Lexer* lexer) {
 char CurrentChar(Lexer* lexer) { return lexer->text[lexer->charIndex]; }
 
 BOOL UniqueLabelName(Label* label, Lexer* lexer) {
-    for (int i = 0; i < lexer->numLabels; i++) {
+    for (unsigned int i = 0; i < lexer->numLabels; i++) {
         if (strcmp(label->name, lexer->labels[i].name) == 0)
             return FALSE;
     }
@@ -414,7 +414,7 @@ Lexer ParseTokens(char* path) {
                     SyntaxError(&lexer, "duplicate label name");
 
                 lexer.labels[lexer.numLabels] = currLabel;
-                printf("%d _%s:\n", currLabel.index, currLabel.name);
+                printf("%ld _%s:\n", currLabel.index, currLabel.name);
                 lexer.state = SKIP_LINE;
                 continue;
             } else if (isalpha(lexer.text[lexer.charIndex])) {
@@ -480,6 +480,5 @@ Lexer ParseTokens(char* path) {
     printf("Parsed %d instructions.\n", lexer.numTokens);
 
     free(text);
-    free(path);
     return lexer;
 }
