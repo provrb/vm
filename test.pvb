@@ -1,20 +1,31 @@
 _exit:
+    push "exiting program"
+    push 2
+    pop rax
     exit
 
+_pushall:
+    push 100
+    push 100
+    push 100
+    push 100
+    push 100
+    push 100
+    push 100
+    push 100
+
+_printstack:
+    print
+
 _start:
-    push 30
+    jmp _pushall
     jmp _printstack
     pop rbx;
     mov rbx, rcx;
     push rcx
-    pop rdx
     push rdx
-    pop 
     mov ep, rax
     mov rcx, r10
+    push 5
     print
-
-_printstack:
-    push 123
-    print
-
+    jmp _exit

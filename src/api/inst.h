@@ -54,6 +54,7 @@ typedef enum {
     REG_R14 = 0xB,
     REG_R15 = 0xC,
     REG_EP = 0xBB,
+    REG_CP = 0x83, // ptr where a jmp was called to resume instructions afterwards
 } Register;
 
 typedef struct {
@@ -153,9 +154,12 @@ typedef struct {
 } Label;
 
 typedef struct {
-    Data stack[STACK_CAPACITY], memory[MEMORY_CAPACITY];
-    int stackSize, memorySize;
-    
+    Data stack[STACK_CAPACITY];
+    int stackSize;
+
+    Data memory[MEMORY_CAPACITY];
+    int memorySize;
+
     Label labels[MAX_LABELS];
     int numLabels;
 
@@ -163,7 +167,10 @@ typedef struct {
 
     Instruction* program; // this should be an array of Instruction
     int programSize;
-    int ip; // instruction
+    long ip; // instruction
+    char reserved[100];
+    long ep; // current label entry point index
+    long rp; // resume index. index to set ip to after we are finished in a label
 } Machine;
 
 // Create Data structures using different available types

@@ -16,12 +16,14 @@ int main() {
     machine->stackSize = 0;
     machine->ip = 0;
     machine->program = insts;
+    machine->rp = -1;
+    machine->ep = -1;
     machine->programSize = lexer.numTokens;
-    for (int i = 0; i<lexer.numLabels; i++) {
+    for (int i = 0; i < lexer.numLabels; i++) {
         printf("label: %s\n", lexer.labels[i].name);
         machine->labels[i] = lexer.labels[i];
     }
-    
+
     machine->numLabels = lexer.numLabels;
 
     RunInstructions(machine);

@@ -6,10 +6,9 @@
 #include <string.h>
 
 static const RegisterMap registerMap[] = {
-    {"rax", REG_RAX}, {"rbx", REG_RBX}, {"rcx", REG_RCX},     {"rdx", REG_RDX}, {"r8", REG_R8},
-    {"r9", REG_R9},   {"r10", REG_R10}, {"r11", REG_R11},     {"r12", REG_R12}, {"r13", REG_R13},
-    {"r14", REG_R14}, {"r15", REG_R15}, {"ep", REG_EP}, {"none", REG_UNKNOWN}
-};
+    {"rax", REG_RAX}, {"rbx", REG_RBX}, {"rcx", REG_RCX}, {"rdx", REG_RDX}, {"r8", REG_R8},
+    {"r9", REG_R9},   {"r10", REG_R10}, {"r11", REG_R11}, {"r12", REG_R12}, {"r13", REG_R13},
+    {"r14", REG_R14}, {"r15", REG_R15}, {"ep", REG_EP},   {"cp", REG_CP},   {"none", REG_UNKNOWN}};
 
 const char* GetRegisterName(Register reg) {
     for (int i = 0; registerMap[i].reg != REG_UNKNOWN; i++)
@@ -107,11 +106,12 @@ void PrintStack(Machine* machine) {
 }
 
 void JumpTo(Machine* machine, int dest) {
-    printf("set ip: %d\n", dest);
     if (dest > machine->programSize || dest < 0) {
         return;
     }
 
+    machine->ep = dest;
+    machine->rp = machine->ip;
     machine->ip = dest;
 }
 
@@ -184,16 +184,48 @@ void RuntimeError(Machine* machine, char* msg) {
 }
 
 int GetEntryPoint(Machine* machine) {
-    for (int i = 0; i<machine->numLabels; i++) {
+    for (int i = 0; i < machine->numLabels; i++) {
         printf("comparing %s to %s\n", LABEL_ENTRY_PNT, machine->labels[i].name);
         if (strcmp(LABEL_ENTRY_PNT, machine->labels[i].name) == 0)
             return machine->labels[i].index;
     }
-    
+
     RuntimeError(machine, "no entry point"); // no entry point
 }
 
+int EndOfLabel(Machine* machine) {
+    int nextLabelIndex = -1;
+    int closestIndex = 2147483647;
+
+    for (int i = 0; i < machine->numLabels; i++) {
+        if (machine->labels[i].index == machine->ep) {
+            nextLabelIndex = machine->labels[i + 1].index - 1;
+            break;
+        }
+    }
+
+    return nextLabelIndex;
+}
+
+void Zero(Data* memory, Register reg) { memory[reg] = DATA_USING_I64(0); }
+
 void RunInstructions(Machine* machine) {
+
+    long end = EndOfLabel(machine);
+    if (end != -1 && machine->ip > end && machine->rp != -1) {
+        printf("end of label. curr %d, start of label: %d, end of label: %d\n", machine->ip,
+               machine->ep, end);
+        machine->ip = machine->rp + 1;
+        machine->rp = -1;
+        machine->ep = -1;
+        RunInstructions(machine);
+        return;
+    }
+    printf("ip: %ld, rp: %ld, end: %ld\n", machine->ip, machine->rp, end);
+
+    // machine->ip = machine->rp;
+    // machine->rp = 0;
+
     if (machine->ip == 0 && machine->started == FALSE) {
         machine->ip = GetEntryPoint(machine);
         printf("entry point index: %d\n", machine->ip);
@@ -239,6 +271,7 @@ void RunInstructions(Machine* machine) {
         break;
     }
     case OP_JMP:
+        printf("Jumping to %ld\n", inst.data.value.data.i64);
         jump = TRUE;
         JumpTo(machine, inst.data.value.data.i64);
         break;
@@ -362,10 +395,10 @@ void RunInstructions(Machine* machine) {
         PrintStack(machine);
         break;
     case OP_EXIT:
-        exit(machine->memory[REG_RAX].data.i64); // exit code saved in RAX register 
+        printf("exiting with code %ld.\n", machine->memory[REG_RAX].data.i64);
+        exit(machine->memory[REG_RAX].data.i64); // exit code saved in RAX register
     default:
-        fprintf(stderr, "error unknown opcode. exiting");
-        exit(1);
+        RuntimeError(machine, "\n\tIn 'RunInstructions()' : unknown instruction");
     }
 
     if (jump == FALSE) // was not a jump instruction
