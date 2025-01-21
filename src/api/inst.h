@@ -53,6 +53,7 @@ typedef enum {
     REG_R13 = 0xA,
     REG_R14 = 0xB,
     REG_R15 = 0xC,
+    REG_EP = 0xBB,
 } Register;
 
 typedef struct {
@@ -142,9 +143,23 @@ typedef struct {
     } data;
 } Instruction;
 
+/// Represents a label
+/// e.g _start:
+/// always starts with 'LXR_LABEL_
+typedef struct {
+    char name[MAX_LABEL_LEN];
+    int nameLen;
+    long index;
+} Label;
+
 typedef struct {
     Data stack[STACK_CAPACITY], memory[MEMORY_CAPACITY];
     int stackSize, memorySize;
+    
+    Label labels[MAX_LABELS];
+    int numLabels;
+
+    int started;
 
     Instruction* program; // this should be an array of Instruction
     int programSize;

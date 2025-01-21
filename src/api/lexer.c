@@ -198,6 +198,21 @@ Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer)
 void PrintToken(Token* token) { printf("%06d: %s\n", token->line, token->text); }
 
 char* ParseOperand(Lexer* lexer, Opcode opcode) {
+    if (lexer->text[lexer->charIndex] == LXR_LABEL_START && (opcode == OP_JMP || opcode == OP_JE || opcode == OP_JG || opcode == OP_JGE || opcode == OP_JL || opcode == OP_JLE || opcode == OP_JNE))
+    {
+        printf("Moving to a label?\n");
+        char* labelName = malloc(MAX_LABEL_LEN * sizeof(char));
+        int labelNameIndex = 0;
+        while (lexer->text[lexer->charIndex] != LXR_LABEL_END) {
+            if (isblank(lexer->text[lexer->charIndex]))
+                break;
+            
+            labelName[labelNameIndex++] = lexer->text[lexer->charIndex++];
+        }
+        labelName[labelNameIndex] = '\0';
+        printf("label is: %s\n", labelName);
+        return labelName;
+    }
 
     // check if operand
     if (!isdigit(lexer->text[lexer->charIndex])) {
@@ -241,19 +256,34 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
         return string;
     }
 
-    if (opcode == OP_MOV || (opcode == OP_PUSH && !isdigit(lexer->text[lexer->charIndex]))) {
-        char* reg = malloc(sizeof(12) * sizeof(char));
+    if (opcode == OP_MOV) {
+        printf("is mov\n");
+        char* reg = malloc(12 * sizeof(char));
+        int regStrIndex = 0;
+        printf("current: %c\n", lexer->text[lexer->charIndex]);
+        while (isdigit(lexer->text[lexer->charIndex]) || isalpha(lexer->text[lexer->charIndex])) {
+            reg[regStrIndex++] = lexer->text[lexer->charIndex++];
+        }
+
+        reg[regStrIndex] = '\0';
+        printf("reg: %s\n", reg);
+        return reg;
+    }
+
+    if ((opcode == OP_PUSH && !isdigit(lexer->text[lexer->charIndex]))) {
+        char* reg = malloc(12 * sizeof(char));
         int regStrIndex = 0;
         while (!isblank(lexer->text[lexer->charIndex]) && isalpha(lexer->text[lexer->charIndex])) {
             reg[regStrIndex++] = lexer->text[lexer->charIndex++];
         }
         reg[regStrIndex] = '\0';
+        
         return reg;
     }
 
     if (opcode == OP_POP) {
         printf("pop?\n");
-        char* reg = malloc(sizeof(12) * sizeof(char));
+        char* reg = malloc(12 * sizeof(char));
         int regStrIndex = 0;
 
         while (isalpha(lexer->text[lexer->charIndex]) || lexer->text[lexer->charIndex] == '8' ||
@@ -317,6 +347,14 @@ void ToOperandType(Operand* operands, int index, char* operand) {
     }
 }
 
+int LabelIndex(Lexer* lexer, char* name) {
+    for (int i =0; i<lexer->numLabels; i++) {
+        if (strcmp(lexer->labels[i].name, name) == 0)
+            return lexer->labels[i].index;
+    }
+    return -1;
+}
+
 void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
     if (opcode == OP_POP || opcode == OP_PUSH) {
         // check if theres an operand
@@ -356,14 +394,22 @@ void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
             lexer->charIndex++;
             SkipSpaces(lexer);
         }
-        printf("parse\n");
+        printf("parse. required: %d\n", OperandsExpected(opcode));
         // Parse the operand associated with the opcode
         char* operand = ParseOperand(lexer, opcode);
         if (operand == NULL)
             SyntaxError(lexer, "missing operand");
 
+        if (opcode == OP_JMP) {
+            if (LabelIndex(lexer, operand) == -1) {
+                printf("not jumping to a label\n");
+            } else 
+                operands[0].data.i64 = LabelIndex(lexer, operand);
+            return; 
+        }
+
         ToOperandType(operands, opIndex, operand);
-        printf("to type\n");
+        printf("to type. jump to %d\n", operands[0].data.i64);
 
         // Check the syntax of the operand
         CheckOperandSyntax(lexer, opcode, operand);
@@ -422,7 +468,6 @@ Lexer ParseTokens(char* path) {
             // printf("Label");
             memset(&currLabel, 0, sizeof(Label));
             currLabel.index = lexer.numTokens;
-            lexer.numLabels++;
             lexer.state = PARSE_LABEL;
             lexer.charIndex++;
         }
@@ -459,7 +504,7 @@ Lexer ParseTokens(char* path) {
                 if (UniqueLabelName(&currLabel, &lexer) == FALSE)
                     SyntaxError(&lexer, "duplicate label name");
 
-                lexer.labels[lexer.numLabels] = currLabel;
+                lexer.labels[lexer.numLabels++] = currLabel;
                 printf("%ld _%s:\n", currLabel.index, currLabel.name);
                 lexer.state = SKIP_LINE;
                 continue;
@@ -535,6 +580,7 @@ Lexer ParseTokens(char* path) {
     }
 
     printf("Parsed %d instructions.\n", lexer.numTokens);
+    
 
     free(text);
     return lexer;

@@ -8,7 +8,8 @@
 static const RegisterMap registerMap[] = {
     {"rax", REG_RAX}, {"rbx", REG_RBX}, {"rcx", REG_RCX},     {"rdx", REG_RDX}, {"r8", REG_R8},
     {"r9", REG_R9},   {"r10", REG_R10}, {"r11", REG_R11},     {"r12", REG_R12}, {"r13", REG_R13},
-    {"r14", REG_R14}, {"r15", REG_R15}, {"none", REG_UNKNOWN}};
+    {"r14", REG_R14}, {"r15", REG_R15}, {"ep", REG_EP}, {"none", REG_UNKNOWN}
+};
 
 const char* GetRegisterName(Register reg) {
     for (int i = 0; registerMap[i].reg != REG_UNKNOWN; i++)
@@ -106,6 +107,7 @@ void PrintStack(Machine* machine) {
 }
 
 void JumpTo(Machine* machine, int dest) {
+    printf("set ip: %d\n", dest);
     if (dest > machine->programSize || dest < 0) {
         return;
     }
@@ -176,7 +178,28 @@ Instruction* ReadProgramFromFile(Machine* machine, char* path) {
     return insts;
 }
 
+void RuntimeError(Machine* machine, char* msg) {
+    fprintf(stderr, "runtime error. %s\n", msg);
+    exit(1);
+}
+
+int GetEntryPoint(Machine* machine) {
+    for (int i = 0; i<machine->numLabels; i++) {
+        printf("comparing %s to %s\n", LABEL_ENTRY_PNT, machine->labels[i].name);
+        if (strcmp(LABEL_ENTRY_PNT, machine->labels[i].name) == 0)
+            return machine->labels[i].index;
+    }
+    
+    RuntimeError(machine, "no entry point"); // no entry point
+}
+
 void RunInstructions(Machine* machine) {
+    if (machine->ip == 0 && machine->started == FALSE) {
+        machine->ip = GetEntryPoint(machine);
+        printf("entry point index: %d\n", machine->ip);
+        machine->started = TRUE;
+    }
+
     if (machine->ip >= machine->programSize) {
         return;
     }
@@ -338,6 +361,8 @@ void RunInstructions(Machine* machine) {
     case OP_PRNT:
         PrintStack(machine);
         break;
+    case OP_EXIT:
+        exit(machine->memory[REG_RAX].data.i64); // exit code saved in RAX register 
     default:
         fprintf(stderr, "error unknown opcode. exiting");
         exit(1);

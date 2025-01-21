@@ -1,10 +1,20 @@
-push 30
-pop rbx;
-mov rbx, rcx;
-push rcx
-pop rdx
-push rdx
-pop 
-mov rcx, rax
-mov r10, rcx
-print
+_exit:
+    exit
+
+_start:
+    push 30
+    jmp _printstack
+    pop rbx;
+    mov rbx, rcx;
+    push rcx
+    pop rdx
+    push rdx
+    pop 
+    mov ep, rax
+    mov rcx, r10
+    print
+
+_printstack:
+    push 123
+    print
+

@@ -23,6 +23,7 @@
 #define LXR_STR_CHAR '"'    // start and end of a string
 #define LXR_LABEL_START '_' // start of a label
 #define LXR_LABEL_END ':'   // end of a label
+#define LABEL_ENTRY_PNT "start"
 
 // booleans
 typedef int BOOL;

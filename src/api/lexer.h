@@ -21,15 +21,6 @@ typedef enum {
     ERR_TYPE_ERROR,
 } Error;
 
-/// Represents a label
-/// e.g _start:
-/// always starts with 'LXR_LABEL_
-typedef struct {
-    char name[MAX_LABEL_LEN];
-    int nameLen;
-    long index;
-} Label;
-
 /// @brief More information about an instruction
 ///
 /// Includes the parsed instruction information
