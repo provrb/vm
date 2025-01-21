@@ -15,24 +15,6 @@
 #include "inst.h"   // for Instruction and Opcode
 #include "macros.h" // for size defintions, i.e MAX_KEYWORD_LEN
 
-// General purpose register indexes 
-// for accessing memory in a Machine
-typedef enum {
-    REG_UNKNOWN = -1,
-    RAX = 0x00,
-    RBX = 0x10,
-    RCX = 0x20,
-    RDX = 0x30,
-    R8 = 0x40,
-    R9 = 0x50,
-    R10 = 0x60,
-    R11 = 0x70,
-    R12 = 0x80,
-    R13 = 0x90,
-    R14 = 0xA0,
-    R15 = 0xB0,
-} Register;
-
 typedef enum {
     ERR_INVALID_SYNTAX,
     ERR_RUNTIME_EXCEPTION,
@@ -141,7 +123,8 @@ void CheckOperandSyntax(Lexer* lexer, Opcode opcode, char* operand);
 
 /// @brief Return the number of operands needed for an opcode
 /// @param op - opcode to get number of operands for
-/// @return - number of operands needed for an opcode to be syntactically correct
+/// @return - number of operands needed for an opcode to be syntactically
+/// correct
 int OperandsExpected(Opcode op);
 
 /// @brief Constructor for a Token

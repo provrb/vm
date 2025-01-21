@@ -36,6 +36,30 @@
         }                                                                                          \
     }
 
+// General purpose register indexes
+// for accessing memory in a Machine
+typedef enum {
+    REG_UNKNOWN = -1,
+    REG_NONE = 0x0,
+    REG_RAX = 0x1,
+    REG_RBX = 0x2,
+    REG_RCX = 0x3,
+    REG_RDX = 0x4,
+    REG_R8 = 0x5,
+    REG_R9 = 0x6,
+    REG_R10 = 0x7,
+    REG_R11 = 0x8,
+    REG_R12 = 0x9,
+    REG_R13 = 0xA,
+    REG_R14 = 0xB,
+    REG_R15 = 0xC,
+} Register;
+
+typedef struct {
+    const char* name;
+    Register reg;
+} RegisterMap;
+
 /// @brief Enum represnting assembly instructions
 ///
 /// Depending on an opcode, perform different functions
@@ -92,10 +116,10 @@ typedef union {
     long i64;
     char byte;
     void* ptr;
-} Cell;
+} DataCell;
 
 typedef struct {
-    Cell data;
+    DataCell data;
     DataType type;
 } Data;
 
@@ -118,11 +142,8 @@ typedef struct {
 } Instruction;
 
 typedef struct {
-    Data stack[STACK_CAPACITY];
-    int stackSize;
-
-    Data memory[MEMORY_CAPACITY];
-    int memorySize;
+    Data stack[STACK_CAPACITY], memory[MEMORY_CAPACITY];
+    int stackSize, memorySize;
 
     Instruction* program; // this should be an array of Instruction
     int programSize;
@@ -162,6 +183,13 @@ void PrintStack(Machine* machine);
 /// @brief Run the instruction located at machine->program[machine->ip]
 /// @param machine - machine to perform the operation on
 void RunInstructions(Machine* machine);
+
+/// @brief Print the contents of each register in machines memory
+/// @param machine - machine to print register contents
+void PrintRegisterContents(Machine* machine);
+
+const char* GetRegisterName(Register reg);
+Register GetRegisterFromName(const char* name);
 
 Instruction* ReadProgramFromFile(Machine* machine, char* path);
 void DumpProgramToFile(Machine* inst, char* filePath);

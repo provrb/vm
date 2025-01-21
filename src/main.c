@@ -19,6 +19,7 @@ int main() {
     machine->programSize = lexer.numTokens;
 
     RunInstructions(machine);
+    PrintRegisterContents(machine);
 
     return 0;
 }

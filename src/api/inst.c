@@ -3,6 +3,28 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+static const RegisterMap registerMap[] = {
+    {"rax", REG_RAX}, {"rbx", REG_RBX}, {"rcx", REG_RCX},     {"rdx", REG_RDX}, {"r8", REG_R8},
+    {"r9", REG_R9},   {"r10", REG_R10}, {"r11", REG_R11},     {"r12", REG_R12}, {"r13", REG_R13},
+    {"r14", REG_R14}, {"r15", REG_R15}, {"none", REG_UNKNOWN}};
+
+const char* GetRegisterName(Register reg) {
+    for (int i = 0; registerMap[i].reg != REG_UNKNOWN; i++)
+        if (registerMap[i].reg == reg)
+            return registerMap[i].name;
+
+    return "unknown";
+}
+
+Register GetRegisterFromName(const char* name) {
+    for (int i = 0; registerMap[i].reg != REG_UNKNOWN; i++)
+        if (strcmp(registerMap[i].name, name) == 0)
+            return registerMap[i].reg;
+
+    return REG_UNKNOWN;
+}
 
 Data DATA_USING_I64(long val) {
     Data d = {.data.i64 = val, .type = TY_I64};
@@ -25,11 +47,21 @@ Data DATA_USING_PTR(void* val) {
 }
 
 void Move(Machine* machine, int src, int dest) {
-    if (machine->stackSize <= src || dest < 0 || src < 0 || machine->stackSize <= dest) {
-        fprintf(stderr, "Trying to move value from %d to %d. Out-of-bounds. Aborted.\n", src, dest);
+    printf("Moving from %d to %d\n", src, dest);
+
+    char* regSrc = GetRegisterName(src);
+    if (strcmp(regSrc, "unknown") == 0) {
+        fprintf(stderr, "Invalid source register. Aborted.\n");
         exit(1);
     }
-    machine->stack[dest] = machine->stack[src];
+
+    char* regDest = GetRegisterName(dest);
+    if (strcmp(regDest, "unknown") == 0) {
+        fprintf(stderr, "Invalid destination register. Aborted.\n");
+        exit(1);
+    }
+
+    machine->memory[dest] = machine->memory[src];
 }
 
 void Push(Machine* machine, Data value) {
@@ -90,6 +122,32 @@ void DumpProgramToFile(Machine* machine, char* filePath) {
 
     fwrite(machine->program, sizeof(Instruction), machine->programSize, file);
     fclose(file);
+}
+
+void PrintRegisterContents(Machine* machine) {
+    printf("Memory Layout\n");
+
+    for (int i = REG_RAX; i < REG_R15 + 1; i++) {
+        Data data = machine->memory[i];
+        printf("%-4s: ", GetRegisterName(i));
+
+        switch (data.type) {
+        case TY_STR:
+            printf("\"%2s\"", (char*)data.data.ptr);
+            break;
+        case TY_I64:
+            printf("%5ld (i64)", data.data.i64);
+            break;
+        case TY_U64:
+            printf("%5ld (u64)", data.data.u64);
+            break;
+        default:
+            printf("empty");
+            break;
+        }
+
+        printf("\n");
+    }
 }
 
 Instruction* ReadProgramFromFile(Machine* machine, char* path) {
@@ -220,12 +278,21 @@ void RunInstructions(Machine* machine) {
         break;
     }
     case OP_PUSH:
+        if (inst.data.value.type == TY_STR &&
+            GetRegisterFromName((char*)inst.data.value.data.ptr) != REG_UNKNOWN) {
+            Push(machine, machine->memory[inst.data.registers.src]);
+            break;
+        }
+        // printf("pushing %s\n", (char*)inst.data.value.data.ptr);
         Push(machine, inst.data.value);
         break;
     case OP_POP: {
         int val = Pop(machine);
-        // todo: check if register is stored
-        machine->memory[inst.data.registers.dest] = DATA_USING_I64(val);
+
+        // pop to memory
+        if (inst.data.registers.dest != REG_NONE)
+            machine->memory[inst.data.registers.dest] = DATA_USING_I64(val);
+
         break;
     }
     case OP_ADD: {
