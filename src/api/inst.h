@@ -108,6 +108,7 @@ typedef enum {
     TY_I64,
     TY_BYTE,
     TY_STR,
+    TY_REG_NAME,
     TY_ANY,
 } DataType;
 

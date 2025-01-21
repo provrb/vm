@@ -280,7 +280,8 @@ void RunInstructions(Machine* machine) {
     case OP_PUSH:
         if (inst.data.value.type == TY_STR &&
             GetRegisterFromName((char*)inst.data.value.data.ptr) != REG_UNKNOWN) {
-            Push(machine, machine->memory[inst.data.registers.src]);
+            // push from memory
+            Push(machine, machine->memory[GetRegisterFromName((char*)inst.data.value.data.ptr)]);
             break;
         }
         // printf("pushing %s\n", (char*)inst.data.value.data.ptr);

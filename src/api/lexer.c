@@ -162,7 +162,8 @@ Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer)
             // operand is a register
             printf("On a register\n");
             snprintf(t.text, textLen, "%s %s", keyword, (char*)operands[0].data.ptr);
-            i.data.registers.src = GetRegisterFromName((const char*)operands[0].data.ptr);
+            i.data.value.data.i64 = operands[0].data.i64;
+            i.data.value.type = TY_STR;
             break;
         }
 
