@@ -1,15 +1,15 @@
 #!/bin/bash
 
 SRC_DIR="./src"
+API_DIR="./api"
 OUT_DIR="./out"
-API_DIR="$SRC_DIR/api"
 
 OUT="$OUT_DIR/main"
-SRC="$SRC_DIR/*.c $API_DIR/*.c"
+SRC=$(find $SRC_DIR $API_DIR -name "*.c")
 
 clear
 rm -f "$OUT"
 find . -name "*.c" -o -name "*.h" | xargs clang-format -i
-gcc $SRC -o "$OUT" -Wextra -Wall
+gcc $SRC -o "$OUT" -Wextra -Wall -I $SRC_DIR -I $API_DIR
 chmod +x "$OUT"
 ./"$OUT"
