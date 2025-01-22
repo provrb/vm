@@ -396,7 +396,8 @@ void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
         if (operand == NULL)
             SyntaxError(lexer, "missing operand");
 
-        if (opcode == OP_JMP) {
+        if (opcode == OP_JMP || opcode == OP_JE || opcode == OP_JG || opcode == OP_JGE ||
+            opcode == OP_JL || opcode == OP_JLE || opcode == OP_JNE) {
             if (LabelIndex(lexer, operand) != -1) {
                 operands[0].data.i64 = LabelIndex(lexer, operand);
                 operands[0].type = TY_I64;
