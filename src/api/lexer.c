@@ -397,7 +397,7 @@ void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
             SyntaxError(lexer, "missing operand");
 
         if (opcode == OP_JMP) {
-            if (LabelIndex(lexer, operand) != -1) {
+            if (LabelIndex(lexer, operand) !    = -1) {
                 operands[0].data.i64 = LabelIndex(lexer, operand);
                 operands[0].type = TY_I64;
                 CheckOperandSyntax(lexer, opcode, operand);

@@ -18,7 +18,7 @@ _printstack:
     print
 
 _start:
-    jmp _pushall
+    jne _pushall
     jmp _printstack
     pop rbx;
     mov rbx, rcx;
