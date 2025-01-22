@@ -1,3 +1,4 @@
+#line 1 "/home/ethan/Documents/provrb/vm/src/lexer.c"
 #include "../api/lexer.h"
 
 #include <ctype.h>
