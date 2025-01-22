@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#line 1 "C:\\Users\\ethan\\Desktop\\vm\\vm.ino"
+#line 1 "/home/ethan/Documents/provrb/vm/vm.ino"
 /// This is the arduino sections of the project
 ///
 /// The goal is to make my language run on an arduino, using
@@ -13,36 +13,39 @@ extern "C" {
 };
 
 int led = 11;
+String total = "";
 
-#line 15 "C:\\Users\\ethan\\Desktop\\vm\\vm.ino"
-void interpret(String text);
-#line 39 "C:\\Users\\ethan\\Desktop\\vm\\vm.ino"
+#line 16 "/home/ethan/Documents/provrb/vm/vm.ino"
+void interpret();
+#line 42 "/home/ethan/Documents/provrb/vm/vm.ino"
 void setup();
-#line 46 "C:\\Users\\ethan\\Desktop\\vm\\vm.ino"
+#line 47 "/home/ethan/Documents/provrb/vm/vm.ino"
 void loop();
-#line 15 "C:\\Users\\ethan\\Desktop\\vm\\vm.ino"
-void interpret(String text) {
-    Lexer lexer = ParseTokens("");
+#line 16 "/home/ethan/Documents/provrb/vm/vm.ino"
+void interpret() {
+    Lexer lexer = ParseTokens(const_cast<char*>(total.c_str()));
     Instruction* insts = (Instruction*)malloc(lexer.numTokens * sizeof(Instruction));
+    Serial.println(lexer.numTokens);
     for (unsigned int i = 0; i < lexer.numTokens; i++) {
         insts[i] = lexer.tokens[i].inst;
-        PrintToken(&lexer.tokens[i]);
+        // Serial.println(lexer.tokens[i].line);
+        // PrintToken(&lexer.tokens[i]);
     }
-    Machine* machine = (Machine*)malloc(sizeof(Machine));
-    machine->stackSize = 0;
-    machine->ip = 0;
-    machine->program = insts;
-    machine->rp = -1;
-    machine->ep = -1;
-    machine->programSize = lexer.numTokens;
-    for (int i = 0; i < lexer.numLabels; i++) {
-        // Serial.println("label: %s\n", lexer.labels[i].name);
-        machine->labels[i] = lexer.labels[i];
-    }
-    machine->numLabels = lexer.numLabels;
+    // Machine* machine = (Machine*)malloc(sizeof(Machine));
+    // machine->stackSize = 0;
+    // machine->ip = 0;
+    // machine->program = insts;
+    // machine->rp = -1;
+    // machine->ep = -1;
+    // machine->programSize = lexer.numTokens;
+    // for (int i = 0; i < lexer.numLabels; i++) {
+    //     // Serial.println("label: %s\n", lexer.labels[i].name);
+    //     machine->labels[i] = lexer.labels[i];
+    // }
+    // machine->numLabels = lexer.numLabels;
 
-    RunInstructions(machine);
-    PrintRegisterContents(machine);
+    // RunInstructions(machine);
+    // PrintRegisterContents(machine);
 }
 
 void setup() {
@@ -50,17 +53,17 @@ void setup() {
     Serial.println("Live");
 }
 
-String total = "";
-
 void loop() {
-    if (Serial.available() > 0) { // Check if data is available
+    if (Serial.available()) {
         String received = Serial.readStringUntil('\n'); // Read until newline
-        if (received.length() > 0) { // Ensure valid input
-            Serial.println("Received:");
-            Serial.println(received);
-            total += received; // Append received data to total
-            Serial.println("Total:");
-            Serial.println(total);
+        if (received.equals("EOF")){
+            Serial.println("Received all contents.");
+            Serial.print(total);
+            interpret();
+            return;
         }
+        
+        received += '\n';
+        total += received; // Append received data to total
     }
 }

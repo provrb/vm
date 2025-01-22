@@ -1,4 +1,4 @@
-#line 1 "C:\\Users\\ethan\\Desktop\\vm\\api\\lexer.h"
+#line 1 "/home/ethan/Documents/provrb/vm/api/lexer.h"
 /// Lexer for .pvb files. provrb assembly. might be kinda corny but couldn't
 /// think of a name
 ///

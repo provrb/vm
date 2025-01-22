@@ -1,9 +1,9 @@
-#line 1 "C:\\Users\\ethan\\Desktop\\vm\\src\\main.c"
+#line 1 "/home/ethan/Documents/provrb/vm/src/main.c"
 #include "../api/lexer.h"
-#include <stdio.h>
-#include <stdlib.h>
 
 #ifndef USING_ARDUINO
+#include <stdio.h>
+#include <stdlib.h>
 
 int main() {
     Lexer lexer = ParseTokens("./test.pvb");

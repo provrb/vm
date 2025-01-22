@@ -10,7 +10,7 @@ import time
 import sys
 
 if sys.platform == "linux":
-    port = "/dev/ttyACM0"
+    port = "/dev/ttyACM1"
 elif sys.platform == "win32":
     port = "COM3"
 else:
@@ -18,8 +18,8 @@ else:
     exit(1)
 
 def send_file_over_serial():
-    with serial.Serial(port, 9000, timeout=1) as ser:
-        print(f"Connected to {port} at 9000 baud.")
+    with serial.Serial(port, 9600, timeout=1) as ser:
+        print(f"Connected to {port} at 9600 baud.")
 
         with open(sys.argv[1], 'r') as file:
             lines = file.readlines()
@@ -28,9 +28,13 @@ def send_file_over_serial():
         for line in lines:
             line = line.strip()
             ser.write(line.encode() + b'\n') 
+            ser.flush()
             print(f"Sent: {line}")
             time.sleep(0.1)
         
+        end = "EOF\n" # eof
+        ser.write(end.encode());
+
         print("File contents sent successfully!")
 
 if __name__ == "__main__":

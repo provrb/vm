@@ -1,4 +1,4 @@
-#line 1 "C:\\Users\\ethan\\Desktop\\vm\\src\\lexer.c"
+#line 1 "/home/ethan/Documents/provrb/vm/src/lexer.c"
 #include "../api/lexer.h"
 
 #include <ctype.h>
@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef USING_ARDUINO
 static const OpcodeEntry opcodeTable[] = {
     {"nop", OP_NOP},   {"push", OP_PUSH},    {"pop", OP_POP},   {"mov", OP_MOV},
     {"swap", OP_SWAP}, {"jmp", OP_JMP},      {"jne", OP_JNE},   {"je", OP_JE},
@@ -24,6 +25,46 @@ Opcode OpcodeFromKeyword(char* keyword) {
 
     return OP_UNKNOWN; // if the keyword doesn't match any known opcode
 }
+
+#elif defined(USING_ARDUINO)
+
+Opcode OpcodeFromKeyword(char* keyword) {
+    if (strcmp(keyword, "nop") == 0) return OP_NOP;
+    else if (strcmp(keyword, "push") == 0) return OP_PUSH;
+    else if (strcmp(keyword, "pop") == 0) return OP_POP;
+    else if (strcmp(keyword, "mov") == 0) return OP_MOV;
+    else if (strcmp(keyword, "swap") == 0) return OP_SWAP;
+    else if (strcmp(keyword, "jmp") == 0) return OP_JMP;
+    else if (strcmp(keyword, "jne") == 0) return OP_JNE;
+    else if (strcmp(keyword, "je") == 0) return OP_JE;
+    else if (strcmp(keyword, "jg") == 0) return OP_JG;
+    else if (strcmp(keyword, "jge") == 0) return OP_JGE;
+    else if (strcmp(keyword, "jl") == 0) return OP_JL;
+    else if (strcmp(keyword, "jle") == 0) return OP_JLE;
+    else if (strcmp(keyword, "add") == 0) return OP_ADD;
+    else if (strcmp(keyword, "sub") == 0) return OP_SUB;
+    else if (strcmp(keyword, "mul") == 0) return OP_MUL;
+    else if (strcmp(keyword, "div") == 0) return OP_DIV;
+    else if (strcmp(keyword, "mod") == 0) return OP_MOD;
+    else if (strcmp(keyword, "neg") == 0) return OP_NEG;
+    else if (strcmp(keyword, "AND") == 0) return OP_ANDB;
+    else if (strcmp(keyword, "OR") == 0) return OP_ORB;
+    else if (strcmp(keyword, "NOT") == 0) return OP_NOTB;
+    else if (strcmp(keyword, "XOR") == 0) return OP_XORB;
+    else if (strcmp(keyword, "shl") == 0) return OP_SHL;
+    else if (strcmp(keyword, "shr") == 0) return OP_SHR;
+    else if (strcmp(keyword, "dup") == 0) return OP_DUP;
+    else if (strcmp(keyword, "clear") == 0) return OP_CLR;
+    else if (strcmp(keyword, "size") == 0) return OP_SIZE;
+    else if (strcmp(keyword, "print") == 0) return OP_PRNT;
+    else if (strcmp(keyword, "exit") == 0) return OP_EXIT;
+    else return OP_UNKNOWN;
+}
+
+#endif
+
+
+
 
 char* GetLine(Lexer* lexer) {
     long start = lexer->charIndex;

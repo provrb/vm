@@ -7,6 +7,8 @@
 #ifndef INST_H
 #define INST_H
 
+#define USING_ARDUINO
+
 #include "macros.h"
 
 /// Compare last two values in stack based off operator

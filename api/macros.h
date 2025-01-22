@@ -3,27 +3,28 @@
 /// Includes macros to make creating Instruction structs
 /// neater. Instead of having to do {.operation = OP_PUSH, .data.value = 3}
 /// everytime you have to push a value, you can simply use an instruction macro.
-#define MAX_LABEL_LEN 35
+#define MAX_LABEL_LEN 15
 #define MAX_OPERAND_LEN 50 // worst case scenario you have two LLONG_MAX
 
 #ifdef USING_ARDUINO
-#define STACK_CAPACITY 100
-#define MEMORY_CAPACITY 100
-#define MAX_PROGRAM_SIZE 100
+#define STACK_CAPACITY 30
+#define MEMORY_CAPACITY 30
+#define MAX_PROGRAM_SIZE 30
 #define MAX_KEYWORD_LEN 5  // keywords should NOT exceed this length
-#define MAX_OPERAND_LEN 50 // worst case scenario you have two LLONG_MAX
-#define MAX_STRING_LEN 50
+#define MAX_OPERAND_LEN 10 // worst case scenario you have two LLONG_MAX
+#define MAX_STRING_LEN 20
+
+#define MAX_LABELS 5
 #elif !defined(USING_ARDUINO) // if not using arduino, the max sizes can be a bit bigger
 #define STACK_CAPACITY 2048
 #define MEMORY_CAPACITY 2048
 #define MAX_PROGRAM_SIZE 2048
 #define MAX_KEYWORD_LEN 35 // keywords should NOT exceed this length
 #define MAX_STRING_LEN 256
+#define MAX_LABELS 100
 #endif
 
-/// Lexer
 #define LXR_MAX_LINE_LEN MAX_KEYWORD_LEN + MAX_OPERAND_LEN // maximum length a line can be lexer
-#define MAX_LABELS 100
 
 /// Syntax for lexer
 #define LXR_COMMENT ';'     // a command in the language, like c has // for comment

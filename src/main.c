@@ -1,8 +1,8 @@
 #include "../api/lexer.h"
-#include <stdio.h>
-#include <stdlib.h>
 
 #ifndef USING_ARDUINO
+#include <stdio.h>
+#include <stdlib.h>
 
 int main() {
     Lexer lexer = ParseTokens("./test.pvb");

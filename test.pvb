@@ -1,30 +1,3 @@
-_exit:
-    mov $3, rax
-    print
-    exit
-
-_pushall:
-    push 100
-    push 100
-    push 100
-    push 100
-    push 100
-    push 100
-    push 100
-    push 100
-
-_printstack:
-    print
-
 _start:
-    jmp _pushall
-    jmp _printstack
     mov $512, rax
-    mov $513, rbx
-    mov rbx, rdx
-    push 10
-    pop rcx
-    push "exiting program"
-    pop rbx
-    print
     
