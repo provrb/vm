@@ -1,32 +1,36 @@
-// #include "lexer.h"
-// #include <stdio.h>
-// #include <stdlib.h>
+#include "../api/lexer.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-// int main() {
-//     Lexer lexer = ParseTokens("./test.pvb");
+#ifndef USING_ARDUINO
 
-//     Instruction* insts = malloc(lexer.numTokens * sizeof(Instruction));
-//     for (unsigned int i = 0; i < lexer.numTokens; i++) {
-//         insts[i] = lexer.tokens[i].inst;
-//         PrintToken(&lexer.tokens[i]);
-//     }
+int main() {
+    Lexer lexer = ParseTokens("./test.pvb");
 
-//     Machine* machine = malloc(sizeof(Machine));
-//     machine->stackSize = 0;
-//     machine->ip = 0;
-//     machine->program = insts;
-//     machine->rp = -1;
-//     machine->ep = -1;
-//     machine->programSize = lexer.numTokens;
-//     for (int i = 0; i < lexer.numLabels; i++) {
-//         printf("label: %s\n", lexer.labels[i].name);
-//         machine->labels[i] = lexer.labels[i];
-//     }
+    Instruction* insts = malloc(lexer.numTokens * sizeof(Instruction));
+    for (unsigned int i = 0; i < lexer.numTokens; i++) {
+        insts[i] = lexer.tokens[i].inst;
+        PrintToken(&lexer.tokens[i]);
+    }
 
-//     machine->numLabels = lexer.numLabels;
+    Machine* machine = malloc(sizeof(Machine));
+    machine->stackSize = 0;
+    machine->ip = 0;
+    machine->program = insts;
+    machine->rp = -1;
+    machine->ep = -1;
+    machine->programSize = lexer.numTokens;
+    for (int i = 0; i < lexer.numLabels; i++) {
+        printf("label: %s\n", lexer.labels[i].name);
+        machine->labels[i] = lexer.labels[i];
+    }
 
-//     RunInstructions(machine);
-//     PrintRegisterContents(machine);
+    machine->numLabels = lexer.numLabels;
 
-//     return 0;
-// }
+    RunInstructions(machine);
+    PrintRegisterContents(machine);
+
+    return 0;
+}
+
+#endif

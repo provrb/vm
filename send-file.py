@@ -18,31 +18,20 @@ else:
     exit(1)
 
 def send_file_over_serial():
-    # Get file path passed from command line arguments
-    if len(sys.argv) - 1 < 1 or len(sys.argv) - 1 > 1:
-        print(f"Incorrect number of arguments passed. 1 required, {len(sys.argv)-1} passed.")
-        exit(1)
+    with serial.Serial(port, 9000, timeout=1) as ser:
+        print(f"Connected to {port} at 9000 baud.")
 
-    file = sys.argv[1]
-
-    try:
-        ser = open(serial.Serial("/dev/ttyACM0", 9600))
-        print("Serial port opened.")
-        with open(file, "r") as f:
-            lines = f.readlines()
-    except FileNotFoundError and serial.SerialException:
-        print("Failed to open. File not found.")
-        exit(1)
-
-            
-    for line in lines:
-        line = line.strip()
-        ser.write(line.encode() + b'\n')
-        ser.flush()
-        time.sleep(0.1)
-
-    ser.write("EOF".encode());
-    print("Successfully sent file")
+        with open(sys.argv[1], 'r') as file:
+            lines = file.readlines()
+        
+        print("Sending file contents...")
+        for line in lines:
+            line = line.strip()
+            ser.write(line.encode() + b'\n') 
+            print(f"Sent: {line}")
+            time.sleep(0.1)
+        
+        print("File contents sent successfully!")
 
 if __name__ == "__main__":
     send_file_over_serial()

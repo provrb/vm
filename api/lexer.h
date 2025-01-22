@@ -8,7 +8,7 @@
 #ifndef LEXER_H
 #define LEXER_H
 
-#define USING_ARDUINO
+#define USING_ARDUINO // comment this out if not using arduino
 
 /// Create an OpcodeEntry containing an opcode and its string name
 /// Easier and more readable than repeating this

@@ -490,16 +490,16 @@ BOOL UniqueLabelName(Label* label, Lexer* lexer) {
 #ifndef USING_ARDUINO
 Lexer ParseTokens(char* path)
 #elif defined(USING_ARDUINO)
-Lexer ParseTokens(char* text) 
+Lexer ParseTokens(char* text)
 #endif
 {
     // Open file and load its contents
     long tl = 0;
-    #ifndef USING_ARDUINO
-        char* text = ReadFromFile(path, &tl);
-    #elif defined(USING_ARDUINO)
-        char* path = "none";
-    #endif
+#ifndef USING_ARDUINO
+    char* text = ReadFromFile(path, &tl);
+#elif defined(USING_ARDUINO)
+    char* path = "none";
+#endif
 
     // Create lexxer struct from known variables
     Lexer lexer = {

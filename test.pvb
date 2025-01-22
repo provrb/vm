@@ -1,7 +1,6 @@
 _exit:
-    push "exiting program"
-    push 2
-    pop rax
+    mov $3, rax
+    print
     exit
 
 _pushall:
@@ -18,10 +17,14 @@ _printstack:
     print
 
 _start:
+    jmp _pushall
+    jmp _printstack
     mov $512, rax
     mov $513, rbx
     mov rbx, rdx
     push 10
     pop rcx
+    push "exiting program"
+    pop rbx
     print
     

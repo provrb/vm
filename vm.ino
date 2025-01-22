@@ -3,7 +3,6 @@
 /// The goal is to make my language run on an arduino, using
 /// specialized instructions to control the hardware.
 
-#define USING_ARDUINO
 
 extern "C" {
     #include "api/lexer.h"
@@ -40,28 +39,19 @@ void interpret(String text) {
 void setup() {
     Serial.begin(9600);
     Serial.println("Live");
-    pinMode(led, OUTPUT);
 }
 
 String total = "";
-bool received = false;
 
 void loop() {
-    if (received || !Serial.available())
-        return;
-
-    
-    // Receive a line of the file to interpret
-    String received = Serial.readStringUntil('\n');
-    if (received.equals("EOF") == true) {
-        Serial.println("end of file");
-        total += '\0';
-        interpret(total);
-        received = true;
-        return;
+    if (Serial.available() > 0) { // Check if data is available
+        String received = Serial.readStringUntil('\n'); // Read until newline
+        if (received.length() > 0) { // Ensure valid input
+            Serial.println("Received:");
+            Serial.println(received);
+            total += received; // Append received data to total
+            Serial.println("Total:");
+            Serial.println(total);
+        }
     }
-
-    Serial.println("Received.");
-    
-    total+=received;
 }
