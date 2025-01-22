@@ -149,8 +149,28 @@ Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer)
 
     switch (OperandsExpected(operation)) {
     case 2:
-        if (operands[0].type != TY_I64 || operands[1].type != TY_I64)
+        if (operation == OP_MOV) {
+            if (operands[0].type == TY_STR &&
+                ((char*)operands[0].data.ptr)[0] == LXR_CONSTANT_PREFIX) {
+                printf("Is a constant\n");
+                i.data.value.data.ptr = operands[0].data.ptr;
+                i.data.registers.dest = operands[1].data.i64;
+                printf("dest is %ld\n", i.data.registers.dest);
+                printf("constant is %s\n", (char*)i.data.value.data.ptr);
+
+                snprintf(t.text, textLen, "%s $%d, %s", keyword, operands[0].data.i64,
+                         GetRegisterName(i.data.registers.dest));
+
+                break;
+            }
+        }
+
+        if (operation != OP_MOV && (operands[0].type != TY_I64 || operands[1].type != TY_I64))
             TypeError(lexer, "expected I64 operand");
+
+        i.data.value.data.i64 = operands[0].data.i64;
+        i.data.value.type = operands[0].type;
+
         i.data.registers.src = operands[0].data.i64;
         i.data.registers.dest = operands[1].data.i64;
         snprintf(t.text, textLen, "%s %s, %s", keyword, GetRegisterName(i.data.registers.src),
@@ -198,6 +218,40 @@ Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer)
 void PrintToken(Token* token) { printf("%06d: %s\n", token->line, token->text); }
 
 char* ParseOperand(Lexer* lexer, Opcode opcode) {
+    if (lexer->text[lexer->charIndex] == LXR_CONSTANT_PREFIX && opcode == OP_MOV) {
+        printf("Parsing constant\n");
+        char* operand = malloc(MAX_OPERAND_LEN * sizeof(char));
+        int operandIndex = 0;
+        operand[operandIndex++] = LXR_CONSTANT_PREFIX;
+
+        lexer->charIndex++;
+        while (isdigit(lexer->text[lexer->charIndex])) {
+            operand[operandIndex] = lexer->text[lexer->charIndex];
+            operandIndex++;
+            lexer->charIndex++;
+        }
+
+        if (lexer->text[lexer->charIndex] == LXR_OPRND_BRK) {
+            lexer->charIndex++;
+            SkipSpaces(lexer);
+            printf("spaced\n");
+        }
+
+        operand[operandIndex] = '\0';
+        printf("parsed: %s\n", operand);
+        return operand;
+    } else if (opcode == OP_MOV) {
+        printf("normal register\n");
+        char* reg = malloc(12 * sizeof(char));
+        int regStrIndex = 0;
+        while (isdigit(lexer->text[lexer->charIndex]) || isalpha(lexer->text[lexer->charIndex])) {
+            reg[regStrIndex++] = lexer->text[lexer->charIndex++];
+        }
+
+        reg[regStrIndex] = '\0';
+        return reg;
+    }
+
     if (lexer->text[lexer->charIndex] == LXR_LABEL_START &&
         (opcode == OP_JMP || opcode == OP_JE || opcode == OP_JG || opcode == OP_JGE ||
          opcode == OP_JL || opcode == OP_JLE || opcode == OP_JNE)) {
@@ -261,17 +315,6 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
         return string;
     }
 
-    if (opcode == OP_MOV) {
-        char* reg = malloc(12 * sizeof(char));
-        int regStrIndex = 0;
-        while (isdigit(lexer->text[lexer->charIndex]) || isalpha(lexer->text[lexer->charIndex])) {
-            reg[regStrIndex++] = lexer->text[lexer->charIndex++];
-        }
-
-        reg[regStrIndex] = '\0';
-        return reg;
-    }
-
     if ((opcode == OP_PUSH && !isdigit(lexer->text[lexer->charIndex]))) {
         char* reg = malloc(12 * sizeof(char));
         int regStrIndex = 0;
@@ -315,6 +358,72 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
     return operand;
 }
 
+void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
+    if (opcode == OP_POP || opcode == OP_PUSH) {
+        // check if theres an operand
+        char* operand = ParseOperand(lexer, opcode);
+        if (operand == NULL) {
+            return; // no operand for pop, we're just deleted it
+        }
+
+        if (strlen(operand) == 0) {
+            return;
+        }
+
+        if (opcode == OP_PUSH && (isdigit(operand[0]) || operand[0] == LXR_STR_CHAR)) {
+            ToOperandType(operands, 0, operand);
+            CheckOperandSyntax(lexer, opcode, operand);
+            return;
+        }
+
+        Register reg = GetRegisterFromName(operand);
+        if (reg == REG_UNKNOWN)
+            SyntaxError(lexer, "invalid register");
+
+        operands[0].data.ptr = (char*)operand;
+        operands[0].type = TY_STR;
+
+        return;
+    }
+
+    // parse 2 operands maximum
+    for (int opIndex = 0; opIndex < OperandsExpected(opcode); opIndex++) {
+        if (lexer->text[lexer->charIndex] == LXR_OPRND_BRK) { // ","
+            lexer->charIndex++;
+            SkipSpaces(lexer);
+        }
+        // Parse the operand associated with the opcode
+        char* operand = ParseOperand(lexer, opcode);
+        if (operand == NULL)
+            SyntaxError(lexer, "missing operand");
+
+        if (opcode == OP_MOV && operand[0] == LXR_CONSTANT_PREFIX) {
+            printf("constant mov\n");
+            operands[0].data.ptr = operand;
+            operands[0].type = TY_STR;
+            printf("- %s\n", (char*)operands[0].data.ptr);
+            CheckOperandSyntax(lexer, opcode, operand);
+            continue;
+        }
+
+        if (opcode == OP_JMP || opcode == OP_JE || opcode == OP_JG || opcode == OP_JGE ||
+            opcode == OP_JL || opcode == OP_JLE || opcode == OP_JNE) {
+            if (LabelIndex(lexer, operand) != -1) {
+                operands[0].data.i64 = LabelIndex(lexer, operand);
+                operands[0].type = TY_I64;
+                CheckOperandSyntax(lexer, opcode, operand);
+            }
+            return;
+        }
+
+        printf("operand parsed: %s\n", operand);
+        ToOperandType(operands, opIndex, operand);
+
+        // Check the syntax of the operand
+        CheckOperandSyntax(lexer, opcode, operand);
+    }
+}
+
 void CheckOperandSyntax(Lexer* lexer, Opcode opcode, char* operand) {
     // check if operand we need and have an operand
     if ((OperandsExpected(opcode) != 0) != (operand != NULL)) {
@@ -355,62 +464,6 @@ int LabelIndex(Lexer* lexer, char* name) {
         }
     }
     return -1;
-}
-
-void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
-    if (opcode == OP_POP || opcode == OP_PUSH) {
-        // check if theres an operand
-        char* operand = ParseOperand(lexer, opcode);
-        if (operand == NULL) {
-            return; // no operand for pop, we're just deleted it
-        }
-
-        if (strlen(operand) == 0) {
-            return;
-        }
-
-        if (opcode == OP_PUSH && (isdigit(operand[0]) || operand[0] == LXR_STR_CHAR)) {
-            ToOperandType(operands, 0, operand);
-            CheckOperandSyntax(lexer, opcode, operand);
-            return;
-        }
-
-        Register reg = GetRegisterFromName(operand);
-        if (reg == REG_UNKNOWN)
-            SyntaxError(lexer, "invalid register");
-
-        operands[0].data.ptr = (char*)operand;
-        operands[0].type = TY_STR;
-
-        return;
-    }
-
-    // parse 2 operands maximum
-    for (int opIndex = 0; opIndex < OperandsExpected(opcode); opIndex++) {
-        if (lexer->text[lexer->charIndex] == LXR_OPRND_BRK) { // ","
-            lexer->charIndex++;
-            SkipSpaces(lexer);
-        }
-        // Parse the operand associated with the opcode
-        char* operand = ParseOperand(lexer, opcode);
-        if (operand == NULL)
-            SyntaxError(lexer, "missing operand");
-
-        if (opcode == OP_JMP || opcode == OP_JE || opcode == OP_JG || opcode == OP_JGE ||
-            opcode == OP_JL || opcode == OP_JLE || opcode == OP_JNE) {
-            if (LabelIndex(lexer, operand) != -1) {
-                operands[0].data.i64 = LabelIndex(lexer, operand);
-                operands[0].type = TY_I64;
-                CheckOperandSyntax(lexer, opcode, operand);
-            }
-            return;
-        }
-
-        ToOperandType(operands, opIndex, operand);
-
-        // Check the syntax of the operand
-        CheckOperandSyntax(lexer, opcode, operand);
-    }
 }
 
 void SkipSpaces(Lexer* lexer) {

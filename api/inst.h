@@ -183,7 +183,7 @@ Data DATA_USING_PTR(void* val);
 /// @param machine - machine to perform move operation on
 /// @param src - index of value to move
 /// @param dest - index to move src
-void Move(Machine* machine, int src, int dest);
+void Move(Machine* machine, Operand data, int dest);
 
 /// @brief Push a value 'value' to the machines stack
 /// @param machine - machine to append 'value' to its stack

@@ -24,6 +24,7 @@
 #define LXR_LABEL_START '_' // start of a label
 #define LXR_LABEL_END ':'   // end of a label
 #define LABEL_ENTRY_PNT "start"
+#define LXR_CONSTANT_PREFIX '$'
 
 // booleans
 typedef int BOOL;

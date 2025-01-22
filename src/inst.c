@@ -46,22 +46,34 @@ Data DATA_USING_PTR(void* val) {
     return d;
 }
 
-void Move(Machine* machine, int src, int dest) {
-    printf("Moving from %d to %d\n", src, dest);
+void RemoveChar(char* str, char toRemove) {
+    int i, j = 0;
+    int length = strlen(str);
 
-    char* regSrc = GetRegisterName(src);
-    if (strcmp(regSrc, "unknown") == 0) {
-        fprintf(stderr, "Invalid source register. Aborted.\n");
-        exit(1);
+    for (i = 0; i < length; i++) {
+        if (str[i] != toRemove) {
+            str[j++] = str[i];
+        }
     }
+    str[j] = '\0';
+}
 
+void Move(Machine* machine, Operand data, int dest) {
     char* regDest = GetRegisterName(dest);
     if (strcmp(regDest, "unknown") == 0) {
         fprintf(stderr, "Invalid destination register. Aborted.\n");
         exit(1);
     }
 
-    machine->memory[dest] = machine->memory[src];
+    if (strcmp(GetRegisterName(data.data.i64), "unknown") == 0) {
+        printf("Not a source register. Taking as a constant %s\n", (char*)data.data.ptr);
+        RemoveChar((char*)data.data.ptr, LXR_CONSTANT_PREFIX);
+
+        machine->memory[dest] = DATA_USING_I64(atol((char*)data.data.ptr));
+        return;
+    }
+
+    machine->memory[dest] = machine->memory[data.data.i64];
 }
 
 void Push(Machine* machine, Data value) {
@@ -377,7 +389,7 @@ void RunInstructions(Machine* machine) {
         break;
     }
     case OP_MOV:
-        Move(machine, inst.data.registers.src, inst.data.registers.dest);
+        Move(machine, inst.data.value, inst.data.registers.dest);
         break;
     case OP_SUB: {
         int b = Pop(machine);
