@@ -195,11 +195,8 @@ Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer)
         if (operation == OP_MOV) {
             if (operands[0].type == TY_STR &&
                 ((char*)operands[0].data.ptr)[0] == LXR_CONSTANT_PREFIX) {
-                printf("Is a constant\n");
                 i.data.value.data.ptr = operands[0].data.ptr;
                 i.data.registers.dest = operands[1].data.i64;
-                printf("dest is %ld\n", i.data.registers.dest);
-                printf("constant is %s\n", (char*)i.data.value.data.ptr);
 
                 snprintf(t.text, textLen, "%s $%d, %s", keyword, operands[0].data.i64,
                          GetRegisterName(i.data.registers.dest));
@@ -223,7 +220,6 @@ Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer)
         if (i.operation == OP_PUSH && operands[0].type == TY_STR &&
             GetRegisterFromName((char*)operands[0].data.ptr) != REG_UNKNOWN) {
             // operand is a register
-            printf("On a register\n");
             snprintf(t.text, textLen, "%s %s", keyword, (char*)operands[0].data.ptr);
             i.data.value.data.i64 = operands[0].data.i64;
             i.data.value.type = TY_STR;
@@ -262,7 +258,6 @@ void PrintToken(Token* token) { printf("%06d: %s\n", token->line, token->text); 
 
 char* ParseOperand(Lexer* lexer, Opcode opcode) {
     if (lexer->text[lexer->charIndex] == LXR_CONSTANT_PREFIX && opcode == OP_MOV) {
-        printf("Parsing constant\n");
         char* operand = malloc(MAX_OPERAND_LEN * sizeof(char));
         int operandIndex = 0;
         operand[operandIndex++] = LXR_CONSTANT_PREFIX;
@@ -277,14 +272,11 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
         if (lexer->text[lexer->charIndex] == LXR_OPRND_BRK) {
             lexer->charIndex++;
             SkipSpaces(lexer);
-            printf("spaced\n");
         }
 
         operand[operandIndex] = '\0';
-        printf("parsed: %s\n", operand);
         return operand;
     } else if (opcode == OP_MOV) {
-        printf("normal register\n");
         char* reg = malloc(12 * sizeof(char));
         int regStrIndex = 0;
         while (isdigit(lexer->text[lexer->charIndex]) || isalpha(lexer->text[lexer->charIndex])) {
@@ -298,14 +290,12 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
     if (lexer->text[lexer->charIndex] == LXR_LABEL_START &&
         (opcode == OP_JMP || opcode == OP_JE || opcode == OP_JG || opcode == OP_JGE ||
          opcode == OP_JL || opcode == OP_JLE || opcode == OP_JNE)) {
-        printf("Moving to a label\n");
         lexer->charIndex++;
         char* labelName = malloc(MAX_LABEL_LEN * sizeof(char));
         int labelNameIndex = 0;
 
         while (lexer->text[lexer->charIndex] != LXR_LABEL_END) {
             if (isblank(lexer->text[lexer->charIndex])) {
-                printf("is blank.\n");
                 break;
             }
             labelName[labelNameIndex] = lexer->text[lexer->charIndex];
@@ -313,7 +303,6 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
             lexer->charIndex++;
         }
         labelName[labelNameIndex - 2] = '\0';
-        printf("label is: '%s'\n", labelName);
         return labelName;
     }
 
@@ -441,10 +430,8 @@ void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
             SyntaxError(lexer, "missing operand");
 
         if (opcode == OP_MOV && operand[0] == LXR_CONSTANT_PREFIX) {
-            printf("constant mov\n");
             operands[0].data.ptr = operand;
             operands[0].type = TY_STR;
-            printf("- %s\n", (char*)operands[0].data.ptr);
             CheckOperandSyntax(lexer, opcode, operand);
             continue;
         }
@@ -459,7 +446,6 @@ void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
             return;
         }
 
-        printf("operand parsed: %s\n", operand);
         ToOperandType(operands, opIndex, operand);
 
         // Check the syntax of the operand
@@ -500,9 +486,7 @@ void ToOperandType(Operand* operands, int index, char* operand) {
 
 int LabelIndex(Lexer* lexer, char* name) {
     for (int i = 0; i < lexer->numLabels; i++) {
-        printf("l: %s, n: %s\n", lexer->labels[i].name, name);
         if (strcmp(lexer->labels[i].name, name) == 0) {
-            printf("found label. instructions start at %d\n", lexer->labels[i].index);
             return lexer->labels[i].index;
         }
     }
@@ -535,7 +519,7 @@ Lexer ParseTokens(char* text)
 #endif
 {
     // Open file and load its contents
-    long tl = 0;
+    unsigned int tl = 0;
 #ifndef USING_ARDUINO
     char* text = ReadFromFile(path, &tl);
 #elif defined(USING_ARDUINO)
@@ -547,7 +531,7 @@ Lexer ParseTokens(char* text)
         .state = PARSE, .lineNumber = 1, .filePath = path, .text = text, .textLength = tl};
 
     char keyword[MAX_KEYWORD_LEN] = {0};
-    long index = 0;
+    unsigned int index = 0;
 
     Label currLabel = {0};
 
@@ -606,7 +590,6 @@ Lexer ParseTokens(char* text)
                     SyntaxError(&lexer, "duplicate label name");
 
                 lexer.labels[lexer.numLabels++] = currLabel;
-                printf("%ld _%s:\n", currLabel.index, currLabel.name);
                 lexer.state = SKIP_LINE;
                 continue;
             } else if (isalpha(lexer.text[lexer.charIndex])) {
@@ -616,6 +599,7 @@ Lexer ParseTokens(char* text)
                 continue;
             }
         }
+
 
         // detect unknonwn characters
         if (lexer.charIndex < lexer.textLength && !isalpha(lexer.text[lexer.charIndex]) &&
@@ -657,7 +641,7 @@ Lexer ParseTokens(char* text)
             lexer.state = PARSE;
         }
 
-        printf("keyword: %s\n", keyword);
+
         // get opcode from keyword as an Opcode enum
         Opcode opcode = OpcodeFromKeyword(keyword);
         if (opcode == OP_UNKNOWN) {
@@ -675,8 +659,6 @@ Lexer ParseTokens(char* text)
         Token token = NewToken(opcode, strdup(keyword), operands, &lexer);
         lexer.tokens[lexer.numTokens++] = token; // append token to array of tokens
     }
-
-    printf("Parsed %d instructions.\n", lexer.numTokens);
 
     free(text);
     return lexer;

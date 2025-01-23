@@ -7,54 +7,60 @@
 extern "C" {
     #include "api/lexer.h"
     #include <stdlib.h>
-    #include <stdio.h>
 };
 
-int led = 11;
-String total = "";
+// constants
+const uint8_t led = 11;
 
 void interpret() {
-    Lexer lexer = ParseTokens(const_cast<char*>(total.c_str()));
-    Instruction* insts = (Instruction*)malloc(lexer.numTokens * sizeof(Instruction));
-    Serial.println(lexer.numTokens);
-    for (unsigned int i = 0; i < lexer.numTokens; i++) {
-        insts[i] = lexer.tokens[i].inst;
-        // Serial.println(lexer.tokens[i].line);
-        // PrintToken(&lexer.tokens[i]);
-    }
-    // Machine* machine = (Machine*)malloc(sizeof(Machine));
-    // machine->stackSize = 0;
-    // machine->ip = 0;
-    // machine->program = insts;
-    // machine->rp = -1;
-    // machine->ep = -1;
-    // machine->programSize = lexer.numTokens;
-    // for (int i = 0; i < lexer.numLabels; i++) {
-    //     // Serial.println("label: %s\n", lexer.labels[i].name);
-    //     machine->labels[i] = lexer.labels[i];
-    // }
-    // machine->numLabels = lexer.numLabels;
 
-    // RunInstructions(machine);
+    Serial.println("Instructions parsed");
+    Instruction insts[4];
+
+    insts[0].operation = OP_PUSH;
+    insts[0].data.value = DATA_USING_I64(1);
+
+    insts[1].operation = OP_PUSH;
+    insts[1].data.value = DATA_USING_I64(11);
+
+    insts[2].operation = OP_PUSH;
+    insts[2].data.value = DATA_USING_I64(1);
+
+    insts[3].operation = OP_WRITE;
+
+    Serial.println(insts[0].data.value.data.i64);
+    Serial.println(insts[1].data.value.data.i64);
+    Serial.println(insts[2].data.value.data.i64);
+
+    Machine* machine = (Machine*)malloc(sizeof(Machine));
+    machine->stackSize = 0;
+    machine->ip = 0;
+    machine->program = insts;
+    machine->rp = -1;
+    machine->ep = -1;
+    machine->programSize = sizeof(insts) / sizeof(Instruction);
+    machine->labels[0] = Label{"start", 5, 0};
+    machine->numLabels = 1;
+
+    RunInstructions(machine);
+
+    Serial.println("-------STACK--------");
+    for (int i=0; i<machine->stackSize; i++) {
+        Serial.println((char*)machine->stack[i].data.ptr);
+    }
+    Serial.println("-------STACKEND--------");
+    Serial.println(machine->memory[REG_R10].data.i64);
+    Serial.println(machine->memory[REG_R11].data.i64);
+    Serial.println(machine->memory[REG_R12].data.i64);
+
     // PrintRegisterContents(machine);
 }
 
 void setup() {
     Serial.begin(9600);
     Serial.println("Live");
+
+    interpret();
 }
 
-void loop() {
-    if (Serial.available()) {
-        String received = Serial.readStringUntil('\n'); // Read until newline
-        if (received.equals("EOF")){
-            Serial.println("Received all contents.");
-            Serial.print(total);
-            interpret();
-            return;
-        }
-        
-        received += '\n';
-        total += received; // Append received data to total
-    }
-}
+void loop() {}

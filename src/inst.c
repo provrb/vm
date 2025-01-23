@@ -114,7 +114,6 @@ void Move(Machine* machine, Operand data, int dest) {
     if (strcmp(GetRegisterName(data.data.i64), "unknown") == 0) {
         printf("Not a source register. Taking as a constant %s\n", (char*)data.data.ptr);
         RemoveChar((char*)data.data.ptr, LXR_CONSTANT_PREFIX);
-
         machine->memory[dest] = DATA_USING_I64(atol((char*)data.data.ptr));
         return;
     }
@@ -267,26 +266,44 @@ int EndOfLabel(Machine* machine) {
 
 void Zero(Data* memory, Register reg) { memory[reg] = DATA_USING_I64(0); }
 
-void RunInstructions(Machine* machine) {
+#ifdef USING_ARDUINO
+/// @brief Get the port for a pin
+ArduinoPort PinPort(int pin) {
+    if (pin >= 8 && pin <= 13)
+        return PORT_B;
+    else if (pin >= 14 && pin <= 15)
+        return PORT_C;
+    else if (pin >= 0 && pin <= 7)
+        return PORT_D;
+    return -1;
+}
 
+/// @brief Get the bit index for a pin
+int PinBit(int pin) {
+    ArduinoPort port = PinPort(pin);
+
+    switch (port) {
+        case PORT_B: return pin - 8;
+        case PORT_C: return pin - 14;
+        case PORT_D: return pin;
+    }
+
+    return -1;
+}
+#endif
+
+void RunInstructions(Machine* machine) {
     long end = EndOfLabel(machine);
     if (end != -1 && machine->ip > end && machine->rp != -1) {
-        printf("end of label. curr %d, start of label: %d, end of label: %d\n", machine->ip,
-               machine->ep, end);
         machine->ip = machine->rp + 1;
         machine->rp = -1;
         machine->ep = -1;
         RunInstructions(machine);
         return;
     }
-    printf("ip: %ld, rp: %ld, end: %ld\n", machine->ip, machine->rp, end);
-
-    // machine->ip = machine->rp;
-    // machine->rp = 0;
 
     if (machine->ip == 0 && machine->started == FALSE) {
         machine->ip = GetEntryPoint(machine);
-        printf("entry point index: %d\n", machine->ip);
         machine->started = TRUE;
     }
 
@@ -304,6 +321,40 @@ void RunInstructions(Machine* machine) {
     int jump = FALSE; // if inst.operation is a successful jump
 
     switch (inst.operation) {
+    case OP_WRITE: {
+        unsigned int fd = Pop(machine);
+        int toWrite = Pop(machine);
+
+        if (fd == FILE_STDOUT) {
+            printf("%s", (char*)toWrite);
+        } else if (fd == FILE_INOPIN) {
+            #ifdef USING_ARDUINO
+
+            int state = Pop(machine);
+            if (state != 0 && state != 1)
+                RuntimeError(machine, "invalid state for pin");
+            
+            int pin = toWrite; // pin number
+            int pb = PinBit(pin);
+            ArduinoPort port = PinPort(pin);
+            if (port == PORT_B) {
+                DDRB |= (1 << pb); // set port b as output  
+                DRPORTB |= (state << pb);
+            } else if (port == PORT_C) {
+                DDRC |= (1 << pb); // set port c as output
+                DRPORTC |= (state << pb);
+            } else if (port == PORT_D) {
+                DDRD |= (1 << pb); // set port d as output
+                DRPORTD |= (state << pb);
+            } else
+                RuntimeError(machine, "invalid pin");
+
+            #elif defined(USING_ARDUINO)
+            RuntimeError(machine, "not implemented");
+            #endif
+        }
+        break;
+    }
     case OP_JLE: {
         JUMP_IF(<=, machine, inst.data.value.data.i64, &jump);
         break;
@@ -329,7 +380,6 @@ void RunInstructions(Machine* machine) {
         break;
     }
     case OP_JMP:
-        printf("Jumping to %ld\n", inst.data.value.data.i64);
         jump = TRUE;
         JumpTo(machine, inst.data.value.data.i64);
         break;
@@ -398,7 +448,6 @@ void RunInstructions(Machine* machine) {
             Push(machine, machine->memory[GetRegisterFromName((char*)inst.data.value.data.ptr)]);
             break;
         }
-        // printf("pushing %s\n", (char*)inst.data.value.data.ptr);
         Push(machine, inst.data.value);
         break;
     case OP_POP: {

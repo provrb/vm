@@ -38,6 +38,12 @@
         }                                                                                          \
     }
 
+typedef enum {
+    PORT_B,
+    PORT_C, 
+    PORT_D
+} ArduinoPort;
+
 // General purpose register indexes
 // for accessing memory in a Machine
 typedef enum {
@@ -103,6 +109,8 @@ typedef enum {
     OP_SIZE,
     OP_PRNT,
 
+    OP_WRITE,
+
     OP_EXIT,
 } Opcode;
 
@@ -115,6 +123,11 @@ typedef enum {
     TY_REG_NAME,
     TY_ANY,
 } DataType;
+
+typedef enum {
+    FILE_STDOUT,
+    FILE_INOPIN, // for arduino
+} FileDescriptor;
 
 typedef union {
     unsigned long u64;
@@ -137,42 +150,42 @@ typedef Data Operand;
 /// register to use
 typedef struct {
     Opcode operation;
-    union {
+    struct {
         Operand value;
         struct {
-            int src;
-            int dest;
+            unsigned int src;
+            unsigned int dest;
         } registers;
     } data;
-} Instruction;
+} __attribute__((packed)) Instruction;
 
 /// Represents a label
 /// e.g _start:
 /// always starts with 'LXR_LABEL_
 typedef struct {
     char name[MAX_LABEL_LEN];
-    int nameLen;
+    unsigned short nameLen;
     long index;
 } Label;
 
 typedef struct {
     Data stack[STACK_CAPACITY];
-    int stackSize;
+    unsigned int stackSize;
 
     Data memory[MEMORY_CAPACITY];
-    int memorySize;
+    unsigned int memorySize;
 
     Label labels[MAX_LABELS];
-    int numLabels;
+    unsigned int numLabels;
 
-    int started;
+    unsigned int started;
 
     Instruction* program; // this should be an array of Instruction
-    int programSize;
-    long ip; // instruction
+    unsigned int programSize;
+    unsigned int ip; // instruction
     char reserved[100];
-    long ep; // current label entry point index
-    long rp; // resume index. index to set ip to after we are finished in a label
+    unsigned int ep; // current label entry point index
+    unsigned int rp; // resume index. index to set ip to after we are finished in a label
 } Machine;
 
 // Create Data structures using different available types
@@ -180,6 +193,14 @@ Data DATA_USING_I64(long val);
 Data DATA_USING_U64(unsigned long val);
 Data DATA_USING_STR(char* val);
 Data DATA_USING_PTR(void* val);
+
+#ifdef USING_ARDUINO
+/// @brief Get the port for a pin
+ArduinoPort PinPort(int pin);
+
+/// @brief Get the bit index for a pin
+int PinBit(int pin);
+#endif
 
 /// @brief Move the value on stack at index 'src' to index 'dest'
 /// @param machine - machine to perform move operation on
