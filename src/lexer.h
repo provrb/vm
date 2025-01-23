@@ -8,10 +8,6 @@
 #ifndef LEXER_H
 #define LEXER_H
 
-/// Create an OpcodeEntry containing an opcode and its string name
-/// Easier and more readable than repeating this
-#define KW_OP_PAIR(k, o) {.keyword = k, .opcode = o}
-
 #include "inst.h"   // for Instruction and Opcode
 #include "macros.h" // for size defintions, i.e MAX_KEYWORD_LEN
 
