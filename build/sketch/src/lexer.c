@@ -1,3 +1,4 @@
+#line 1 "C:\\Users\\ethan\\Desktop\\vm\\src\\lexer.c"
 #include "lexer.h"
 
 #include <ctype.h>
@@ -6,7 +7,6 @@
 #include <string.h>
 
 #ifndef USING_ARDUINO
-
 static const OpcodeEntry opcodeTable[] = {
     {"nop", OP_NOP},   {"push", OP_PUSH},    {"pop", OP_POP},   {"mov", OP_MOV},
     {"swap", OP_SWAP}, {"jmp", OP_JMP},      {"jne", OP_JNE},   {"je", OP_JE},
@@ -15,7 +15,7 @@ static const OpcodeEntry opcodeTable[] = {
     {"mod", OP_MOD},   {"neg", OP_NEG},      {"AND", OP_ANDB},  {"OR", OP_ORB},
     {"NOT", OP_NOTB},  {"XOR", OP_XORB},     {"shl", OP_SHL},   {"shr", OP_SHR},
     {"dup", OP_DUP},   {"clear", OP_CLR},    {"size", OP_SIZE}, {"print", OP_PRNT},
-    {"exit", OP_EXIT}, {"write", OP_WRITE}, {"null", OP_UNKNOWN},
+    {"exit", OP_EXIT}, {"null", OP_UNKNOWN},
 };
 
 Opcode OpcodeFromKeyword(char* keyword) {
@@ -25,7 +25,6 @@ Opcode OpcodeFromKeyword(char* keyword) {
 
     return OP_UNKNOWN; // if the keyword doesn't match any known opcode
 }
-
 
 #elif defined(USING_ARDUINO)
 
@@ -59,20 +58,13 @@ Opcode OpcodeFromKeyword(char* keyword) {
     else if (strcmp(keyword, "size") == 0) return OP_SIZE;
     else if (strcmp(keyword, "print") == 0) return OP_PRNT;
     else if (strcmp(keyword, "exit") == 0) return OP_EXIT;
-    else if (strcmp(keyword, "write") == 0) return OP_WRITE;
     else return OP_UNKNOWN;
 }
 
 #endif
 
-int LabelIndex(Lexer* lexer, char* name) {
-    for (int i = 0; i < lexer->numLabels; i++) {
-        if (strcmp(lexer->labels[i].name, name) == 0) {
-            return lexer->labels[i].index;
-        }
-    }
-    return -1;
-}
+
+
 
 char* GetLine(Lexer* lexer) {
     long start = lexer->charIndex;
@@ -96,8 +88,7 @@ char* GetLine(Lexer* lexer) {
 }
 
 #ifndef USING_ARDUINO
-
-char* ReadFromFile(char* path, int* stringLength) {
+char* ReadFromFile(char* path, long* stringLength) {
     FILE* file = fopen(path, "rb");
     if (file == NULL) {
         fprintf(stderr, "Error opening file. Path: %s\n", path);
@@ -122,7 +113,6 @@ char* ReadFromFile(char* path, int* stringLength) {
 
     return buffer;
 }
-
 #endif
 
 int OperandsExpected(Opcode op) {
@@ -189,25 +179,6 @@ void TypeError(Lexer* lexer, char* optMsg) {
     exit(ERR_TYPE_ERROR);
 }
 
-void ToOperandType(Operand* operands, int index, char* operand) {
-    if (GetRegisterFromName(operand) != OP_UNKNOWN) {
-        // is register
-        operands[index].data.i64 = GetRegisterFromName(operand);
-        operands[index].type = TY_I64;
-        return;
-    }
-
-    long asNumber = atol(operand);
-
-    if (operand[0] == LXR_STR_CHAR && operand[strlen(operand) - 1] == LXR_STR_CHAR) {
-        operands[index].data.ptr = operand;
-        operands[index].type = TY_STR;
-    } else {
-        operands[index].data.i64 = asNumber;
-        operands[index].type = TY_I64;
-    }
-}
-
 // 'keyword' and 'operand' will both be free'd and put into Token::text
 Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer) {
     int textLen = 1024;
@@ -227,7 +198,8 @@ Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer)
                 ((char*)operands[0].data.ptr)[0] == LXR_CONSTANT_PREFIX) {
                 i.data.value.data.ptr = operands[0].data.ptr;
                 i.data.registers.dest = operands[1].data.i64;
-                snprintf(t.text, textLen, "%s %s, %s", keyword, (char*)operands[0].data.ptr,
+
+                snprintf(t.text, textLen, "%s $%d, %s", keyword, operands[0].data.i64,
                          GetRegisterName(i.data.registers.dest));
 
                 break;
@@ -313,13 +285,6 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
         }
 
         reg[regStrIndex] = '\0';
-
-        if (GetRegisterFromName(reg) == REG_UNKNOWN) {
-            char buff[35] = {0};
-            snprintf(buff, sizeof(reg) + 23, "invalid register '%s'", reg);
-            SyntaxError(lexer, buff);
-        }
-
         return reg;
     }
 
@@ -501,6 +466,34 @@ void CheckOperandSyntax(Lexer* lexer, Opcode opcode, char* operand) {
     }
 }
 
+void ToOperandType(Operand* operands, int index, char* operand) {
+    if (GetRegisterFromName(operand) != OP_UNKNOWN) {
+        // is register
+        operands[index].data.i64 = GetRegisterFromName(operand);
+        operands[index].type = TY_I64;
+        return;
+    }
+
+    long asNumber = atol(operand);
+
+    if (operand[0] == LXR_STR_CHAR && operand[strlen(operand) - 1] == LXR_STR_CHAR) {
+        operands[index].data.ptr = operand;
+        operands[index].type = TY_STR;
+    } else {
+        operands[index].data.i64 = asNumber;
+        operands[index].type = TY_I64;
+    }
+}
+
+int LabelIndex(Lexer* lexer, char* name) {
+    for (int i = 0; i < lexer->numLabels; i++) {
+        if (strcmp(lexer->labels[i].name, name) == 0) {
+            return lexer->labels[i].index;
+        }
+    }
+    return -1;
+}
+
 void SkipSpaces(Lexer* lexer) {
     // skip spaces, go until not a space
     while (isblank(lexer->text[lexer->charIndex])) {
@@ -520,11 +513,19 @@ BOOL UniqueLabelName(Label* label, Lexer* lexer) {
     return TRUE;
 }
 
+#ifndef USING_ARDUINO
 Lexer ParseTokens(char* path)
+#elif defined(USING_ARDUINO)
+Lexer ParseTokens(char* text)
+#endif
 {
     // Open file and load its contents
     unsigned int tl = 0;
+#ifndef USING_ARDUINO
     char* text = ReadFromFile(path, &tl);
+#elif defined(USING_ARDUINO)
+    char* path = "none";
+#endif
 
     // Create lexxer struct from known variables
     Lexer lexer = {
@@ -542,13 +543,15 @@ Lexer ParseTokens(char* path)
                 continue;
             }
             lexer.state = PARSE;
+            // printf("Parse. Used to skip spaces.\n");
         }
 
-        if (lexer.text[lexer.charIndex] == LXR_LABEL_START && lexer.state != SKIP_LINE &&
+        if (lexer.text[lexer.charIndex] == LXR_LABEL_START &&
             (lexer.state != PARSE_KWD || lexer.state != PARSE_OPND)) {
             if (lexer.state == PARSE_LABEL) // theres another underscore?
                 SyntaxError(&lexer, "unrecognized label token");
 
+            // printf("Label");
             memset(&currLabel, 0, sizeof(Label));
             currLabel.index = lexer.numTokens;
             lexer.state = PARSE_LABEL;
@@ -557,6 +560,9 @@ Lexer ParseTokens(char* path)
 
         // is comment
         if (lexer.text[lexer.charIndex] == LXR_COMMENT && lexer.state != SKIP_LINE) {
+            // printf("Is comment. '%c' '%s'\n", lexer.text[lexer.charIndex],
+            // keyword);
+
             lexer.state = SKIP_LINE;
             lexer.charIndex++;
             continue;
@@ -570,6 +576,7 @@ Lexer ParseTokens(char* path)
             lexer.charIndex++;
             lexer.lineNumber++;
             lexer.state = PARSE;
+            // printf("Stopped skipping line.\n");
             continue;
         }
 
@@ -593,6 +600,7 @@ Lexer ParseTokens(char* path)
                 continue;
             }
         }
+
 
         // detect unknonwn characters
         if (lexer.charIndex < lexer.textLength && !isalpha(lexer.text[lexer.charIndex]) &&

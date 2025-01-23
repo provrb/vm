@@ -1,0 +1,10 @@
+; A program that is lexed and interpreted. 
+; Written in my Custom .pvb language
+; with similar syntax to x86_64 assembly
+;
+; GitHub repository: https://github.com/provrb/vm/
+
+_start:
+    push 0
+    push "hello"
+    write

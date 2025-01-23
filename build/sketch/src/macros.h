@@ -1,8 +1,11 @@
+#line 1 "C:\\Users\\ethan\\Desktop\\vm\\src\\macros.h"
 /// Macros and Instruction Macros
 ///
 /// Includes macros to make creating Instruction structs
 /// neater. Instead of having to do {.operation = OP_PUSH, .data.value = 3}
 /// everytime you have to push a value, you can simply use an instruction macro.
+
+#define USING_ARDUINO
 
 #ifdef USING_ARDUINO
 #define STACK_CAPACITY 15

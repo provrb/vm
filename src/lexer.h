@@ -8,8 +8,6 @@
 #ifndef LEXER_H
 #define LEXER_H
 
-#define USING_ARDUINO // comment this out if not using arduino
-
 /// Create an OpcodeEntry containing an opcode and its string name
 /// Easier and more readable than repeating this
 #define KW_OP_PAIR(k, o) {.keyword = k, .opcode = o}
@@ -73,7 +71,7 @@ typedef struct {
 
 /// File I/O operations
 #ifndef USING_ARDUINO
-char* ReadFromFile(char* path, long* stringLength);
+char* ReadFromFile(char* path, int* stringLength);
 #endif
 
 /// Error handling
@@ -88,6 +86,12 @@ void TypeError(Lexer* lexer, char* optMsg);
 ///
 /// Functions related to the lexer/parsing stage
 /// These include: ParseKeyword, ParseOperands, etc
+
+/// @brief Convert an operand  to its respective type and store in operands
+/// @param operands - array of operands to store the converted operand
+/// @param index - index to store the converted operand
+/// @param operand - operand to convert
+void ToOperandType(Operand* operands, int index, char* operand);
 
 /// @brief Skip all blank characters until a non-blank character is reached
 /// @param lexer - current lexer context
@@ -137,11 +141,13 @@ Opcode OpcodeFromKeyword(char* keyword);
 
 /// @brief Read a file and try to make tokens out of text
 /// @param file - file path to read
-#ifndef USING_ARDUINO
 Lexer ParseTokens(char* path);
-#elif defined(USING_ARDUINO)
-Lexer ParseTokens(char* text);
-#endif
+
+/// @brief Get the starting index of a label from its name
+/// @param lexer - lexer context
+/// @param name - name of label
+/// @return - index of label or -1 if not found
+int LabelIndex(Lexer* lexer, char* name);
 
 /// @brief Print all information about a token
 /// @param token - token to print information about

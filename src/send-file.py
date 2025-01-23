@@ -4,6 +4,8 @@
 # OPens the serial /dev/ttyACM0 on the 9600 and sends
 # the file contents specified in the command line arguments
 # to the arduino so that it can interpret the code as a .pvb
+#
+# *Note: this is pretty much useless. Arduino doesn't have enough memory for lexer.
 
 import serial
 import time

@@ -1,3 +1,4 @@
+#line 1 "C:\\Users\\ethan\\Desktop\\vm\\src\\inst.h"
 /// Instructions Header File
 ///
 /// Functions to handle operations
@@ -7,7 +8,7 @@
 #ifndef INST_H
 #define INST_H
 
-#define USING_ARDUINO
+// #define USING_ARDUINO
 
 #include "macros.h"
 

@@ -1,3 +1,5 @@
+#include <Arduino.h>
+#line 1 "C:\\Users\\ethan\\Desktop\\vm\\vm.ino"
 /// This is the arduino sections of the project
 ///
 /// The goal is to make my language run on an arduino, using
@@ -13,6 +15,13 @@ extern "C" {
 const unsigned short led = 11; // led pin
 
 /// @brief Interpret a mock program
+#line 16 "C:\\Users\\ethan\\Desktop\\vm\\vm.ino"
+void interpret();
+#line 52 "C:\\Users\\ethan\\Desktop\\vm\\vm.ino"
+void setup();
+#line 59 "C:\\Users\\ethan\\Desktop\\vm\\vm.ino"
+void loop();
+#line 16 "C:\\Users\\ethan\\Desktop\\vm\\vm.ino"
 void interpret() {
     Serial.println("Interpreting...");
     

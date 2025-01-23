@@ -1,3 +1,4 @@
+#line 1 "C:\\Users\\ethan\\Desktop\\vm\\src\\inst.c"
 #include "inst.h"
 #include "macros.h"
 
@@ -326,8 +327,7 @@ void RunInstructions(Machine* machine) {
         int toWrite = Pop(machine);
 
         if (fd == FILE_STDOUT) {
-            printf("stdout\n");
-            printf("%s\n", (char*)toWrite);
+            printf("%s", (char*)toWrite);
         } else if (fd == FILE_INOPIN) {
             #ifdef USING_ARDUINO
 

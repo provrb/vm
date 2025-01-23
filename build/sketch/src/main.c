@@ -1,3 +1,4 @@
+#line 1 "C:\\Users\\ethan\\Desktop\\vm\\src\\main.c"
 #include "lexer.h"
 
 #ifndef USING_ARDUINO
@@ -5,7 +6,7 @@
 #include <stdlib.h>
 
 int main() {
-    Lexer lexer = ParseTokens("./custom.pvb");
+    Lexer lexer = ParseTokens("./test.pvb");
 
     Instruction* insts = malloc(lexer.numTokens * sizeof(Instruction));
     for (unsigned int i = 0; i < lexer.numTokens; i++) {
