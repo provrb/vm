@@ -105,7 +105,7 @@ void RemoveChar(char* str, char toRemove) {
 }
 
 void Move(Machine* machine, Operand data, int dest) {
-    char* regDest = GetRegisterName(dest);
+    const char* regDest = GetRegisterName(dest);
     if (strcmp(regDest, "unknown") == 0) {
         fprintf(stderr, "Invalid destination register. Aborted.\n");
         exit(1);
