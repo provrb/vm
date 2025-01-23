@@ -1,3 +1,4 @@
+#line 1 "/home/ethan/Documents/provrb/vm/src/macros.h"
 /// Macros and Instruction Macros
 ///
 /// Includes macros to make creating Instruction structs

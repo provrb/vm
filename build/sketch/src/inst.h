@@ -1,3 +1,4 @@
+#line 1 "/home/ethan/Documents/provrb/vm/src/inst.h"
 /// Instructions Header File
 ///
 /// Functions to handle operations

@@ -1,3 +1,4 @@
+#line 1 "/home/ethan/Documents/provrb/vm/src/inst.c"
 #include "inst.h"
 #include "macros.h"
 
