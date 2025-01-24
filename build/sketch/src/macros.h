@@ -19,19 +19,19 @@
 
 // ripped from the internet
 // registers for the arduino to control pin states
-#define DDRB  (*(volatile unsigned char*)0x24)  // Data Direction Register for Port B
-#define DDRC (*(volatile unsigned char*)0x27)  // Data Direction Register for Port C
-#define DDRD (* (volatile unsigned char*)0x2A)  // Data Direction Register for Port D
+#define DDRB (*(volatile unsigned char*)0x24) // Data Direction Register for Port B
+#define DDRC (*(volatile unsigned char*)0x27) // Data Direction Register for Port C
+#define DDRD (*(volatile unsigned char*)0x2A) // Data Direction Register for Port D
 
-#define DRPORTB (*(volatile unsigned char*)0x25)  // Port B Data Register
-#define DRPORTC (*(volatile unsigned char*)0x28)  // Port C Data Register
-#define DRPORTD (*(volatile unsigned char*)0x2B)  // Port D Data Register
+#define DRPORTB (*(volatile unsigned char*)0x25) // Port B Data Register
+#define DRPORTC (*(volatile unsigned char*)0x28) // Port C Data Register
+#define DRPORTD (*(volatile unsigned char*)0x2B) // Port D Data Register
 #elif !defined(USING_ARDUINO) // if not using arduino, the max sizes can be a bit bigger
 #define STACK_CAPACITY 2048
 #define MEMORY_CAPACITY 2048
 #define MAX_PROGRAM_SIZE 2048
 #define MAX_KEYWORD_LEN 35 // key
-#define MAX_OPERAND_LEN 50 
+#define MAX_OPERAND_LEN 50
 #define MAX_STRING_LEN 256
 #define MAX_LABELS 100
 #define MAX_LABEL_LEN 15

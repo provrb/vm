@@ -5,6 +5,9 @@
 ; GitHub repository: https://github.com/provrb/vm/
 
 _start:
-    push 0
-    push "hello"
+    push "\th\i!\n" ; string to write
+    push 2 ; stdout
     write
+    push 1
+    read
+    print

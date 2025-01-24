@@ -36,11 +36,7 @@
         }                                                                                          \
     }
 
-typedef enum {
-    PORT_B,
-    PORT_C, 
-    PORT_D
-} ArduinoPort;
+typedef enum { PORT_B, PORT_C, PORT_D } ArduinoPort;
 
 // General purpose register indexes
 // for accessing memory in a Machine
@@ -107,7 +103,8 @@ typedef enum {
     OP_SIZE,
     OP_PRNT,
 
-    OP_WRITE,
+    OP_WRITE, // write to stdout or stderr or write pin for arduino
+    OP_READ,  // stdin or read pin for arduino
 
     OP_EXIT,
 } Opcode;
@@ -123,6 +120,8 @@ typedef enum {
 } DataType;
 
 typedef enum {
+    FILE_STDIN = 1,
+    FILE_STDERR,
     FILE_STDOUT,
     FILE_INOPIN, // for arduino
 } FileDescriptor;

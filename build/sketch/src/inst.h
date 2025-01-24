@@ -37,11 +37,7 @@
         }                                                                                          \
     }
 
-typedef enum {
-    PORT_B,
-    PORT_C, 
-    PORT_D
-} ArduinoPort;
+typedef enum { PORT_B, PORT_C, PORT_D } ArduinoPort;
 
 // General purpose register indexes
 // for accessing memory in a Machine

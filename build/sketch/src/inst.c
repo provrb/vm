@@ -10,8 +10,7 @@
 static const RegisterMap registerMap[] = {
     {"rax", REG_RAX}, {"rbx", REG_RBX}, {"rcx", REG_RCX}, {"rdx", REG_RDX}, {"r8", REG_R8},
     {"r9", REG_R9},   {"r10", REG_R10}, {"r11", REG_R11}, {"r12", REG_R12}, {"r13", REG_R13},
-    {"r14", REG_R14}, {"r15", REG_R15}, {"ep", REG_EP},   {"cp", REG_CP},   {"none", REG_UNKNOWN}
-};
+    {"r14", REG_R14}, {"r15", REG_R15}, {"ep", REG_EP},   {"cp", REG_CP},   {"none", REG_UNKNOWN}};
 
 const char* GetRegisterName(Register reg) {
     for (int i = 0; registerMap[i].reg != REG_UNKNOWN; i++)
@@ -32,42 +31,74 @@ Register GetRegisterFromName(const char* name) {
 #elif defined(USING_ARDUINO)
 
 Register GetRegisterFromName(const char* keyword) {
-    if (strcmp(keyword, "rax") == 0) return REG_RAX;
-    else if (strcmp(keyword, "rbx") == 0) return REG_RBX;
-    else if (strcmp(keyword, "rcx") == 0) return REG_RCX;
-    else if (strcmp(keyword, "rdx") == 0) return REG_RDX;
-    else if (strcmp(keyword, "r8") == 0) return REG_R8;
-    else if (strcmp(keyword, "r9") == 0) return REG_R9;
-    else if (strcmp(keyword, "r10") == 0) return REG_R10;
-    else if (strcmp(keyword, "r11") == 0) return REG_R11;
-    else if (strcmp(keyword, "r12") == 0) return REG_R12;
-    else if (strcmp(keyword, "r13") == 0) return REG_R13;
-    else if (strcmp(keyword, "r14") == 0) return REG_R14;
-    else if (strcmp(keyword, "r15") == 0) return REG_R15;
-    else if (strcmp(keyword, "ep") == 0) return REG_EP;
-    else if (strcmp(keyword, "cp") == 0) return REG_CP;
-    else if (strcmp(keyword, "none") == 0) return REG_UNKNOWN;
-    else return REG_UNKNOWN;
+    if (strcmp(keyword, "rax") == 0)
+        return REG_RAX;
+    else if (strcmp(keyword, "rbx") == 0)
+        return REG_RBX;
+    else if (strcmp(keyword, "rcx") == 0)
+        return REG_RCX;
+    else if (strcmp(keyword, "rdx") == 0)
+        return REG_RDX;
+    else if (strcmp(keyword, "r8") == 0)
+        return REG_R8;
+    else if (strcmp(keyword, "r9") == 0)
+        return REG_R9;
+    else if (strcmp(keyword, "r10") == 0)
+        return REG_R10;
+    else if (strcmp(keyword, "r11") == 0)
+        return REG_R11;
+    else if (strcmp(keyword, "r12") == 0)
+        return REG_R12;
+    else if (strcmp(keyword, "r13") == 0)
+        return REG_R13;
+    else if (strcmp(keyword, "r14") == 0)
+        return REG_R14;
+    else if (strcmp(keyword, "r15") == 0)
+        return REG_R15;
+    else if (strcmp(keyword, "ep") == 0)
+        return REG_EP;
+    else if (strcmp(keyword, "cp") == 0)
+        return REG_CP;
+    else if (strcmp(keyword, "none") == 0)
+        return REG_UNKNOWN;
+    else
+        return REG_UNKNOWN;
 }
 
 const char* GetRegisterName(Register reg) {
     switch (reg) {
-        case REG_RAX: return "rax";
-        case REG_RBX: return "rbx";
-        case REG_RCX: return "rcx";
-        case REG_RDX: return "rdx";
-        case REG_R8:  return "r8";
-        case REG_R9:  return "r9";
-        case REG_R10: return "r10";
-        case REG_R11: return "r11";
-        case REG_R12: return "r12";
-        case REG_R13: return "r13";
-        case REG_R14: return "r14";
-        case REG_R15: return "r15";
-        case REG_EP:  return "ep";
-        case REG_CP:  return "cp";
-        case REG_UNKNOWN: return "unknown";
-        default: return "none";
+    case REG_RAX:
+        return "rax";
+    case REG_RBX:
+        return "rbx";
+    case REG_RCX:
+        return "rcx";
+    case REG_RDX:
+        return "rdx";
+    case REG_R8:
+        return "r8";
+    case REG_R9:
+        return "r9";
+    case REG_R10:
+        return "r10";
+    case REG_R11:
+        return "r11";
+    case REG_R12:
+        return "r12";
+    case REG_R13:
+        return "r13";
+    case REG_R14:
+        return "r14";
+    case REG_R15:
+        return "r15";
+    case REG_EP:
+        return "ep";
+    case REG_CP:
+        return "cp";
+    case REG_UNKNOWN:
+        return "unknown";
+    default:
+        return "none";
     }
 }
 
@@ -284,9 +315,12 @@ int PinBit(int pin) {
     ArduinoPort port = PinPort(pin);
 
     switch (port) {
-        case PORT_B: return pin - 8;
-        case PORT_C: return pin - 14;
-        case PORT_D: return pin;
+    case PORT_B:
+        return pin - 8;
+    case PORT_C:
+        return pin - 14;
+    case PORT_D:
+        return pin;
     }
 
     return -1;
@@ -330,16 +364,16 @@ void RunInstructions(Machine* machine) {
             printf("stdout\n");
             printf("%s\n", (char*)toWrite);
         } else if (fd == FILE_INOPIN) {
-            #ifdef USING_ARDUINO
+#ifdef USING_ARDUINO
 
             int state = Pop(machine);
             if (state != 0 && state != 1)
                 RuntimeError(machine, "invalid state for pin");
-            
+
             int pb = PinBit(toWrite);
             ArduinoPort port = PinPort(toWrite);
             if (port == PORT_B) {
-                DDRB |= (1 << pb); // set port b as output  
+                DDRB |= (1 << pb); // set port b as output
                 DRPORTB |= (state << pb);
                 Push(machine, DATA_USING_I64(1));
             } else if (port == PORT_C) {
@@ -355,9 +389,9 @@ void RunInstructions(Machine* machine) {
                 Push(machine, DATA_USING_I64(-1));
             }
             Push(machine, DATA_USING_I64(101));
-            #elif defined(USING_ARDUINO)
+#elif defined(USING_ARDUINO)
             RuntimeError(machine, "not implemented");
-            #endif
+#endif
         }
         break;
     }

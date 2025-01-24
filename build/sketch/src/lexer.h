@@ -50,10 +50,10 @@ typedef struct {
     LexerState state;
 
     Token tokens[MAX_PROGRAM_SIZE];
-    unsigned int  numTokens;
+    unsigned int numTokens;
 
     Label labels[MAX_LABELS];
-    unsigned short  numLabels;
+    unsigned short numLabels;
 } Lexer;
 
 /// @brief An entry to represent relationship between string and enum
