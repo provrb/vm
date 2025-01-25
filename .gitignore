@@ -2,3 +2,12 @@
 build/
 build/*.ino
 build/*.ino.cpp
+build/compile_commands.json
+build/vm.ino.elf
+build/vm.ino.hex
+build/vm.ino.with_bootloader.bin
+build/vm.ino.with_bootloader.hex
+build/sketch/vm.ino.cpp
+build/sketch/vm.ino.cpp.o
+build/sketch/src/inst.c
+build/sketch/src/inst.c.o
