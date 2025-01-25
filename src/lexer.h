@@ -137,7 +137,11 @@ Opcode OpcodeFromKeyword(char* keyword);
 
 /// @brief Read a file and try to make tokens out of text
 /// @param file - file path to read
+#ifndef USING_ARDUINO
 Lexer ParseTokens(char* path);
+#elif defined(USING_ARDUINO)
+Lexer ParseTokens(char* text);
+#endif
 
 /// @brief Get the starting index of a label from its name
 /// @param lexer - lexer context

@@ -2,30 +2,30 @@
   {
     "Sourcefile": null,
     "Include": "",
-    "Includepath": "/home/ethan/.arduino15/packages/arduino/hardware/avr/1.8.6/cores/arduino"
+    "Includepath": "C:\\Users\\ethan\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino"
   },
   {
     "Sourcefile": null,
     "Include": "",
-    "Includepath": "/home/ethan/.arduino15/packages/arduino/hardware/avr/1.8.6/variants/standard"
+    "Includepath": "C:\\Users\\ethan\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\variants\\standard"
   },
   {
-    "Sourcefile": "/home/ethan/Documents/provrb/vm/build/sketch/vm.ino.cpp",
+    "Sourcefile": "C:\\Users\\ethan\\Desktop\\vm\\build\\sketch\\vm.ino.cpp",
     "Include": "",
     "Includepath": null
   },
   {
-    "Sourcefile": "/home/ethan/Documents/provrb/vm/build/sketch/src/inst.c",
+    "Sourcefile": "C:\\Users\\ethan\\Desktop\\vm\\build\\sketch\\src\\inst.c",
     "Include": "",
     "Includepath": null
   },
   {
-    "Sourcefile": "/home/ethan/Documents/provrb/vm/build/sketch/src/lexer.c",
+    "Sourcefile": "C:\\Users\\ethan\\Desktop\\vm\\build\\sketch\\src\\lexer.c",
     "Include": "",
     "Includepath": null
   },
   {
-    "Sourcefile": "/home/ethan/Documents/provrb/vm/build/sketch/src/main.c",
+    "Sourcefile": "C:\\Users\\ethan\\Desktop\\vm\\build\\sketch\\src\\main.c",
     "Include": "",
     "Includepath": null
   }

@@ -1,4 +1,4 @@
-#line 1 "/home/ethan/Documents/provrb/vm/src/macros.h"
+#line 1 "C:\\Users\\ethan\\Desktop\\vm\\src\\macros.h"
 /// Macros and Instruction Macros
 ///
 /// Includes macros to make creating Instruction structs
@@ -11,7 +11,7 @@
 #define STACK_CAPACITY 15
 #define MEMORY_CAPACITY 25
 #define MAX_PROGRAM_SIZE 15
-#define MAX_KEYWORD_LEN 5  // keywords should NOT exceed this length
+#define MAX_KEYWORD_LEN 12 // keywords should NOT exceed this length
 #define MAX_OPERAND_LEN 10 // worst case scenario you have two LLONG_MAX
 #define MAX_STRING_LEN 10
 #define MAX_LABELS 5
@@ -48,6 +48,7 @@
 #define LXR_LABEL_END ':'   // end of a label
 #define LABEL_ENTRY_PNT "start"
 #define LXR_CONSTANT_PREFIX '$'
+#define LXR_ESCAPE_CHAR '\\'
 
 // types
 typedef int BOOL;

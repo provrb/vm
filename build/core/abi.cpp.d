@@ -1,2 +1,2 @@
-/home/ethan/Documents/provrb/vm/build/core/abi.cpp.o: \
- /home/ethan/.arduino15/packages/arduino/hardware/avr/1.8.6/cores/arduino/abi.cpp
+C:\Users\ethan\Desktop\vm\build\core\abi.cpp.o: \
+ C:\Users\ethan\AppData\Local\Arduino15\packages\arduino\hardware\avr\1.8.6\cores\arduino\abi.cpp

@@ -1,4 +1,4 @@
-#line 1 "/home/ethan/Documents/provrb/vm/src/main.c"
+#line 1 "C:\\Users\\ethan\\Desktop\\vm\\src\\main.c"
 #include "lexer.h"
 
 #ifndef USING_ARDUINO

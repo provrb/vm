@@ -5,9 +5,32 @@
 ; GitHub repository: https://github.com/provrb/vm/
 
 _start:
-    push "\th\i!\n" ; string to write
-    push 2 ; stdout
-    write
+    ; variables
+    mov $36, rax ; DDR8 register
+    mov $1, rbx ; state (HIGH)
+    mov $37, rcx ; Port B Data Register
+
+    ; 1 << pb // set port b as output
     push 1
-    read
+    shl 3
+    pop r10
+
+    ; [36, 8]
+    push rax ; push 36 on the stack
+    push r10
+    OR ; DDRB | (1 << pb)
+    pop rax ; rax holds the result
+
+    ; now that we set the pin to output, we need to write a state
+    
+    ; (state << pb)
+    push 1
+    shl 3
+    pop r11
+
+    push rcx ; push port b data register to stack
+    push r11
+    OR 
+    pop rcx
+
     print

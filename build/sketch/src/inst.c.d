@@ -1,4 +1,4 @@
-/home/ethan/Documents/provrb/vm/build/sketch/src/inst.c.o: \
- /home/ethan/Documents/provrb/vm/build/sketch/src/inst.c \
- /home/ethan/Documents/provrb/vm/build/sketch/src/inst.h \
- /home/ethan/Documents/provrb/vm/build/sketch/src/macros.h
+C:\Users\ethan\Desktop\vm\build\sketch\src\inst.c.o: \
+ C:\Users\ethan\Desktop\vm\build\sketch\src\inst.c \
+ C:\Users\ethan\Desktop\vm\build\sketch\src\inst.h \
+ C:\Users\ethan\Desktop\vm\build\sketch\src\macros.h

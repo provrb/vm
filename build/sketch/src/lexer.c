@@ -1,4 +1,4 @@
-#line 1 "/home/ethan/Documents/provrb/vm/src/lexer.c"
+#line 1 "C:\\Users\\ethan\\Desktop\\vm\\src\\lexer.c"
 #include "lexer.h"
 
 #include <ctype.h>
@@ -9,14 +9,14 @@
 #ifndef USING_ARDUINO
 
 static const OpcodeEntry opcodeTable[] = {
-    {"nop", OP_NOP},   {"push", OP_PUSH},   {"pop", OP_POP},      {"mov", OP_MOV},
-    {"swap", OP_SWAP}, {"jmp", OP_JMP},     {"jne", OP_JNE},      {"je", OP_JE},
-    {"jg", OP_JG},     {"jge", OP_JGE},     {"jl", OP_JL},        {"jle", OP_JLE},
-    {"add", OP_ADD},   {"sub", OP_SUB},     {"mul", OP_MUL},      {"div", OP_DIV},
-    {"mod", OP_MOD},   {"neg", OP_NEG},     {"AND", OP_ANDB},     {"OR", OP_ORB},
-    {"NOT", OP_NOTB},  {"XOR", OP_XORB},    {"shl", OP_SHL},      {"shr", OP_SHR},
-    {"dup", OP_DUP},   {"clear", OP_CLR},   {"size", OP_SIZE},    {"print", OP_PRNT},
-    {"exit", OP_EXIT}, {"write", OP_WRITE}, {"null", OP_UNKNOWN},
+    {"nop", OP_NOP},   {"push", OP_PUSH},   {"pop", OP_POP},   {"mov", OP_MOV},
+    {"swap", OP_SWAP}, {"jmp", OP_JMP},     {"jne", OP_JNE},   {"je", OP_JE},
+    {"jg", OP_JG},     {"jge", OP_JGE},     {"jl", OP_JL},     {"jle", OP_JLE},
+    {"add", OP_ADD},   {"sub", OP_SUB},     {"mul", OP_MUL},   {"div", OP_DIV},
+    {"mod", OP_MOD},   {"neg", OP_NEG},     {"AND", OP_ANDB},  {"OR", OP_ORB},
+    {"NOT", OP_NOTB},  {"XOR", OP_XORB},    {"shl", OP_SHL},   {"shr", OP_SHR},
+    {"dup", OP_DUP},   {"clear", OP_CLR},   {"size", OP_SIZE}, {"print", OP_PRNT},
+    {"exit", OP_EXIT}, {"write", OP_WRITE}, {"read", OP_READ}, {"null", OP_UNKNOWN},
 };
 
 Opcode OpcodeFromKeyword(char* keyword) {
@@ -171,6 +171,8 @@ int OperandsExpected(Opcode op) {
     case OP_JMP:
     case OP_JNE:
     case OP_PUSH:
+    case OP_SHL:
+    case OP_SHR:
         return 1;
 
     // operations that require no operands
@@ -317,6 +319,20 @@ Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer)
 void PrintToken(Token* token) { printf("%06d: %s\n", token->line, token->text); }
 
 char* ParseOperand(Lexer* lexer, Opcode opcode) {
+    if (opcode == OP_SHL || opcode == OP_SHR) {
+        char* operand = malloc(MAX_OPERAND_LEN * sizeof(char));
+        int operandIndex = 0;
+
+        while (isdigit(lexer->text[lexer->charIndex])) {
+            operand[operandIndex] = lexer->text[lexer->charIndex];
+            operandIndex++;
+            lexer->charIndex++;
+        }
+
+        operand[operandIndex] = '\0';
+        return operand;
+    }
+
     if (lexer->text[lexer->charIndex] == LXR_CONSTANT_PREFIX && opcode == OP_MOV) {
         char* operand = malloc(MAX_OPERAND_LEN * sizeof(char));
         int operandIndex = 0;
@@ -344,7 +360,6 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
         }
 
         reg[regStrIndex] = '\0';
-
         if (GetRegisterFromName(reg) == REG_UNKNOWN) {
             char buff[35] = {0};
             snprintf(buff, sizeof(reg) + 23, "invalid register '%s'", reg);
@@ -414,27 +429,15 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
         return string;
     }
 
-    if ((opcode == OP_PUSH && !isdigit(lexer->text[lexer->charIndex]))) {
+    if (((opcode == OP_PUSH || opcode == OP_POP) && !isdigit(lexer->text[lexer->charIndex]))) {
         char* reg = malloc(12 * sizeof(char));
         int regStrIndex = 0;
-        while (!isblank(lexer->text[lexer->charIndex]) && isalpha(lexer->text[lexer->charIndex])) {
+        while (!isblank(lexer->text[lexer->charIndex]) &&
+               (isalpha(lexer->text[lexer->charIndex]) || isdigit(lexer->text[lexer->charIndex]))) {
             reg[regStrIndex++] = lexer->text[lexer->charIndex++];
         }
         reg[regStrIndex] = '\0';
 
-        return reg;
-    }
-
-    if (opcode == OP_POP) {
-        char* reg = malloc(12 * sizeof(char));
-        int regStrIndex = 0;
-
-        while (isalpha(lexer->text[lexer->charIndex]) || lexer->text[lexer->charIndex] == '8' ||
-               lexer->text[lexer->charIndex] == '9') {
-            reg[regStrIndex++] = lexer->text[lexer->charIndex++];
-        }
-
-        reg[regStrIndex] = '\0';
         return reg;
     }
 
@@ -475,6 +478,7 @@ void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
             return;
         }
 
+        printf("reg is %s\n", operand);
         Register reg = GetRegisterFromName(operand);
         if (reg == REG_UNKNOWN)
             SyntaxError(lexer, "invalid register");
@@ -551,10 +555,16 @@ BOOL UniqueLabelName(Label* label, Lexer* lexer) {
     return TRUE;
 }
 
+#ifdef USING_ARDUINO
+Lexer ParseTokens(char* text) {
+    char* path = "";
+    unsigned int tl = strlen(text);
+#elif !defined(USING_ARDUINO)
 Lexer ParseTokens(char* path) {
     // Open file and load its contents
     unsigned int tl = 0;
     char* text = ReadFromFile(path, &tl);
+#endif
 
     // Create lexxer struct from known variables
     Lexer lexer = {
@@ -615,6 +625,7 @@ Lexer ParseTokens(char* path) {
 
                 lexer.labels[lexer.numLabels++] = currLabel;
                 lexer.state = SKIP_LINE;
+
                 continue;
             } else if (isalpha(lexer.text[lexer.charIndex])) {
                 // name of the label
@@ -666,6 +677,7 @@ Lexer ParseTokens(char* path) {
 
         // get opcode from keyword as an Opcode enum
         Opcode opcode = OpcodeFromKeyword(keyword);
+
         if (opcode == OP_UNKNOWN) {
             char buff[MAX_KEYWORD_LEN + 20] = {0};
             snprintf(buff, MAX_KEYWORD_LEN + 20, "unknown opcode '%s'", keyword);
@@ -678,10 +690,11 @@ Lexer ParseTokens(char* path) {
         ParseOperands(&lexer, opcode, operands);
 
         // Create token from keyword, opcode, and operands
-        Token token = NewToken(opcode, strdup(keyword), operands, &lexer);
+        char tokenKeyword[MAX_KEYWORD_LEN] = {0};
+        strncpy(tokenKeyword, keyword, MAX_KEYWORD_LEN - 1);
+        Token token = NewToken(opcode, tokenKeyword, operands, &lexer);
         lexer.tokens[lexer.numTokens++] = token; // append token to array of tokens
     }
 
-    free(text);
     return lexer;
 }

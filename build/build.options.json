@@ -1,9 +1,9 @@
 {
-  "additionalFiles": "../../..,../../..,../../..,../../..,../../..,../../..,../../..,../../..,../../..",
+  "additionalFiles": "..\\..\\..,..\\..\\..,..\\..\\..,..\\..\\..,..\\..\\..,..\\..\\..,..\\..\\..,..\\..\\..,..\\..\\..",
   "compiler.optimization_flags": "",
   "customBuildProperties": "build.warn_data_percentage=75",
   "fqbn": "arduino:avr:uno",
-  "hardwareFolders": "/home/ethan/.arduino15/packages",
-  "otherLibrariesFolders": "/home/ethan/Documents/Arduino/libraries",
-  "sketchLocation": "/home/ethan/Documents/provrb/vm"
+  "hardwareFolders": "C:\\Users\\ethan\\AppData\\Local\\Arduino15\\packages",
+  "otherLibrariesFolders": "C:\\Users\\ethan\\Documents\\Arduino\\libraries",
+  "sketchLocation": "C:\\Users\\ethan\\Desktop\\vm"
 }

@@ -93,6 +93,7 @@ typedef enum {
 
     OP_ANDB,
     OP_ORB,
+    OP_OREB, // or equals
     OP_NOTB,
     OP_XORB,
     OP_SHL,
@@ -196,6 +197,10 @@ ArduinoPort PinPort(int pin);
 
 /// @brief Get the bit index for a pin
 int PinBit(int pin);
+
+unsigned char PortPinRegister(int pin);
+
+unsigned char DataDirPinRegister(int pin);
 #endif
 
 /// @brief Move the value on stack at index 'src' to index 'dest'

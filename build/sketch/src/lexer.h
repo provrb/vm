@@ -1,4 +1,4 @@
-#line 1 "/home/ethan/Documents/provrb/vm/src/lexer.h"
+#line 1 "C:\\Users\\ethan\\Desktop\\vm\\src\\lexer.h"
 /// Lexer for .pvb files. provrb assembly. might be kinda corny but couldn't
 /// think of a name
 ///
@@ -138,7 +138,11 @@ Opcode OpcodeFromKeyword(char* keyword);
 
 /// @brief Read a file and try to make tokens out of text
 /// @param file - file path to read
+#ifndef USING_ARDUINO
 Lexer ParseTokens(char* path);
+#elif defined(USING_ARDUINO)
+Lexer ParseTokens(char* text);
+#endif
 
 /// @brief Get the starting index of a label from its name
 /// @param lexer - lexer context

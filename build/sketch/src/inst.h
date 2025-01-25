@@ -1,4 +1,4 @@
-#line 1 "/home/ethan/Documents/provrb/vm/src/inst.h"
+#line 1 "C:\\Users\\ethan\\Desktop\\vm\\src\\inst.h"
 /// Instructions Header File
 ///
 /// Functions to handle operations
@@ -94,6 +94,7 @@ typedef enum {
 
     OP_ANDB,
     OP_ORB,
+    OP_OREB, // or equals
     OP_NOTB,
     OP_XORB,
     OP_SHL,
@@ -104,7 +105,8 @@ typedef enum {
     OP_SIZE,
     OP_PRNT,
 
-    OP_WRITE,
+    OP_WRITE, // write to stdout or stderr or write pin for arduino
+    OP_READ,  // stdin or read pin for arduino
 
     OP_EXIT,
 } Opcode;
@@ -120,6 +122,8 @@ typedef enum {
 } DataType;
 
 typedef enum {
+    FILE_STDIN = 1,
+    FILE_STDERR,
     FILE_STDOUT,
     FILE_INOPIN, // for arduino
 } FileDescriptor;
@@ -194,6 +198,10 @@ ArduinoPort PinPort(int pin);
 
 /// @brief Get the bit index for a pin
 int PinBit(int pin);
+
+unsigned char PortPinRegister(int pin);
+
+unsigned char DataDirPinRegister(int pin);
 #endif
 
 /// @brief Move the value on stack at index 'src' to index 'dest'

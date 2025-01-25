@@ -1,4 +1,4 @@
-#line 1 "/home/ethan/Documents/provrb/vm/src/inst.c"
+#line 1 "C:\\Users\\ethan\\Desktop\\vm\\src\\inst.c"
 #include "inst.h"
 #include "macros.h"
 
@@ -267,19 +267,18 @@ Instruction* ReadProgramFromFile(Machine* machine, char* path) {
     return insts;
 }
 
-void RuntimeError(Machine* machine, char* msg) {
+void RuntimeError(char* msg) {
     fprintf(stderr, "runtime error. %s\n", msg);
     exit(1);
 }
 
 int GetEntryPoint(Machine* machine) {
     for (int i = 0; i < machine->numLabels; i++) {
-        printf("comparing %s to %s\n", LABEL_ENTRY_PNT, machine->labels[i].name);
         if (strcmp(LABEL_ENTRY_PNT, machine->labels[i].name) == 0)
             return machine->labels[i].index;
     }
 
-    RuntimeError(machine, "no entry point"); // no entry point
+    RuntimeError("no entry point"); // no entry point
 }
 
 int EndOfLabel(Machine* machine) {
@@ -310,6 +309,30 @@ ArduinoPort PinPort(int pin) {
     return -1;
 }
 
+unsigned char DataDirPinRegister(int pin) {
+    switch (PinPort(pin)) {
+    case PORT_B:
+        return DDRB;
+    case PORT_C:
+        return DDRC;
+    case PORT_D:
+        return DDRD;
+    }
+    return 492838;
+}
+
+unsigned char PortPinRegister(int pin) {
+    switch (PinPort(pin)) {
+    case PORT_B:
+        return DRPORTB;
+    case PORT_C:
+        return DRPORTC;
+    case PORT_D:
+        return DRPORTD;
+    }
+    return 0;
+}
+
 /// @brief Get the bit index for a pin
 int PinBit(int pin) {
     ArduinoPort port = PinPort(pin);
@@ -327,6 +350,70 @@ int PinBit(int pin) {
 }
 #endif
 
+void OutputString(char* string, FileDescriptor fd) {
+    if (string[0] != LXR_STR_CHAR || string[strlen(string) - 1] != LXR_STR_CHAR)
+        RuntimeError("invalid string");
+
+    // remnove first quote
+    for (size_t i = 0; i < strlen(string); i++)
+        string[i] = string[i + 1];
+
+    if (fd != FILE_STDOUT && fd != FILE_STDERR)
+        RuntimeError("invalid file descriptor");
+
+    FILE* stream = (fd == FILE_STDOUT) ? stdout : stderr;
+
+    // remove last quote
+    string[strlen(string) - 1] = '\0';
+
+    for (size_t i = 0; i < strlen(string); i++) {
+        char c = string[i];
+
+        if (c == '\\' && i + 1 < strlen(string)) {
+            i++;
+            c = string[i];
+            switch (c) {
+            case 'n':
+                fprintf(stream, "\n");
+                break;
+            case '\\':
+                fprintf(stream, "\\");
+                break;
+            case '\'':
+                fprintf(stream, "\'");
+                break;
+            case '\"':
+                fprintf(stream, "\"");
+                break;
+            case 't':
+                fprintf(stream, "\t");
+                break;
+            case 'r':
+                fprintf(stream, "\r");
+                break;
+            case 'b':
+                fprintf(stream, "\b");
+                break;
+            case 'f':
+                fprintf(stream, "\f");
+                break;
+            case 'a':
+                fprintf(stream, "\a");
+                break;
+            case 'v':
+                fprintf(stream, "\v");
+                break;
+            default:
+                fprintf(stream, "\\%c", c);
+            }
+
+            continue;
+        }
+
+        fprintf(stream, "%c", c);
+    }
+}
+
 void RunInstructions(Machine* machine) {
     long end = EndOfLabel(machine);
     if (end != -1 && machine->ip > end && machine->rp != -1) {
@@ -342,59 +429,105 @@ void RunInstructions(Machine* machine) {
         machine->started = TRUE;
     }
 
-    if (machine->ip >= machine->programSize) {
+    if (machine->ip >= machine->programSize)
         return;
-    }
 
-    Instruction* instructions = (Instruction*)machine->program;
-    if (!instructions) {
-        fprintf(stderr, "Panic: Instructions invalid!\n");
-        return;
-    }
-
-    Instruction inst = instructions[machine->ip];
     int jump = FALSE; // if inst.operation is a successful jump
+    Instruction inst = ((Instruction*)machine->program)[machine->ip];
 
     switch (inst.operation) {
+    case OP_READ: {
+        unsigned int fd = Pop(machine);
+        if (fd == FILE_INOPIN) {
+#ifndef USING_ARDUINO
+            RuntimeError("not implemented");
+#endif
+
+            // read input from pin
+
+        } else if (fd == FILE_STDIN) {
+            // read input from stdin
+            char buffer[MAX_STRING_LEN] = {0};
+            buffer[0] = LXR_STR_CHAR;
+            if (fgets(buffer + 1, MAX_STRING_LEN, stdin) == NULL)
+                break;
+
+            RemoveChar(buffer, '\n');
+            buffer[strlen(buffer)] = LXR_STR_CHAR;
+
+            Push(machine, DATA_USING_STR(buffer));
+        }
+
+        break;
+    }
     case OP_WRITE: {
         unsigned int fd = Pop(machine);
         int toWrite = Pop(machine);
-
-        if (fd == FILE_STDOUT) {
-            printf("stdout\n");
-            printf("%s\n", (char*)toWrite);
+        if (fd == FILE_STDOUT || fd == FILE_STDERR) {
+            char* asString = (char*)toWrite; // purposly seg fault if not a string
+            OutputString(asString, fd);
         } else if (fd == FILE_INOPIN) {
-#ifdef USING_ARDUINO
-
+#ifndef USING_ARDUINO
+            RuntimeError("not implemented");
+#else
             int state = Pop(machine);
             if (state != 0 && state != 1)
-                RuntimeError(machine, "invalid state for pin");
+                RuntimeError("invalid state for pin");
 
             int pb = PinBit(toWrite);
             ArduinoPort port = PinPort(toWrite);
             if (port == PORT_B) {
                 DDRB |= (1 << pb); // set port b as output
                 DRPORTB |= (state << pb);
-                Push(machine, DATA_USING_I64(1));
             } else if (port == PORT_C) {
                 DDRC |= (1 << pb); // set port c as output
                 DRPORTC |= (state << pb);
-                Push(machine, DATA_USING_I64(2));
             } else if (port == PORT_D) {
-                Push(machine, DATA_USING_I64(3));
                 DDRD |= (1 << pb); // set port d as output
                 DRPORTD |= (state << pb);
-            } else {
-                RuntimeError(machine, "invalid pin");
-                Push(machine, DATA_USING_I64(-1));
-            }
-            Push(machine, DATA_USING_I64(101));
-#elif defined(USING_ARDUINO)
-            RuntimeError(machine, "not implemented");
+            } else
+                RuntimeError("invalid pin");
 #endif
         }
         break;
     }
+    case OP_PUSH:
+        if (inst.data.value.type == TY_STR &&
+            GetRegisterFromName((char*)inst.data.value.data.ptr) != REG_UNKNOWN) {
+            // push from memory
+            Push(machine, machine->memory[GetRegisterFromName((char*)inst.data.value.data.ptr)]);
+            break;
+        }
+        Push(machine, inst.data.value);
+        break;
+    case OP_POP: {
+        int val = Pop(machine);
+
+        // pop to memory
+        if (inst.data.registers.dest != REG_NONE)
+            machine->memory[inst.data.registers.dest] = DATA_USING_I64(val);
+
+        break;
+    }
+    case OP_SHL: {
+        int val = Pop(machine);
+
+        Push(machine, DATA_USING_I64(val << inst.data.value.data.i64));
+        break;
+    }
+    case OP_ORB: {
+        int b = Pop(machine);
+        int a = Pop(machine);
+        Push(machine, DATA_USING_I64(a | b));
+        break;
+    }
+#ifndef USING_ARDUINO
+    case OP_PRNT:
+        PrintStack(machine);
+        break;
+    case OP_EXIT:
+        printf("exiting with code %ld.\n", machine->memory[REG_RAX].data.i64);
+        exit(machine->memory[REG_RAX].data.i64); // exit code saved in RAX register
     case OP_JLE: {
         JUMP_IF(<=, machine, inst.data.value.data.i64, &jump);
         break;
@@ -425,12 +558,6 @@ void RunInstructions(Machine* machine) {
         break;
     case OP_NOP:
         break;
-    case OP_SHL: {
-        int val = Pop(machine);
-
-        Push(machine, DATA_USING_I64(val << inst.data.value.data.i64));
-        break;
-    }
     case OP_SHR: {
         int val = Pop(machine);
         Push(machine, DATA_USING_I64(val >> inst.data.value.data.i64));
@@ -469,34 +596,10 @@ void RunInstructions(Machine* machine) {
         Push(machine, DATA_USING_I64(~a));
         break;
     }
-    case OP_ORB: {
-        int b = Pop(machine);
-        int a = Pop(machine);
-        Push(machine, DATA_USING_I64(a | b));
-        break;
-    }
     case OP_NEG: {
         int val = Pop(machine);
         val *= -1;
         Push(machine, DATA_USING_I64(val));
-        break;
-    }
-    case OP_PUSH:
-        if (inst.data.value.type == TY_STR &&
-            GetRegisterFromName((char*)inst.data.value.data.ptr) != REG_UNKNOWN) {
-            // push from memory
-            Push(machine, machine->memory[GetRegisterFromName((char*)inst.data.value.data.ptr)]);
-            break;
-        }
-        Push(machine, inst.data.value);
-        break;
-    case OP_POP: {
-        int val = Pop(machine);
-
-        // pop to memory
-        if (inst.data.registers.dest != REG_NONE)
-            machine->memory[inst.data.registers.dest] = DATA_USING_I64(val);
-
         break;
     }
     case OP_ADD: {
@@ -538,14 +641,9 @@ void RunInstructions(Machine* machine) {
     case OP_SIZE:
         Push(machine, DATA_USING_I64(machine->stackSize));
         break;
-    case OP_PRNT:
-        PrintStack(machine);
-        break;
-    case OP_EXIT:
-        printf("exiting with code %ld.\n", machine->memory[REG_RAX].data.i64);
-        exit(machine->memory[REG_RAX].data.i64); // exit code saved in RAX register
+#endif
     default:
-        RuntimeError(machine, "\n\tIn 'RunInstructions()' : unknown instruction");
+        RuntimeError("\n\tIn 'RunInstructions()' : unknown instruction");
     }
 
     if (jump == FALSE) // was not a jump instruction

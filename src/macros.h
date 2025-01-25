@@ -4,13 +4,13 @@
 /// neater. Instead of having to do {.operation = OP_PUSH, .data.value = 3}
 /// everytime you have to push a value, you can simply use an instruction macro.
 
-// #define USING_ARDUINO // comment this out if not using arduino
+#define USING_ARDUINO // comment this out if not using arduino
 
 #ifdef USING_ARDUINO
 #define STACK_CAPACITY 15
 #define MEMORY_CAPACITY 25
 #define MAX_PROGRAM_SIZE 15
-#define MAX_KEYWORD_LEN 5  // keywords should NOT exceed this length
+#define MAX_KEYWORD_LEN 12 // keywords should NOT exceed this length
 #define MAX_OPERAND_LEN 10 // worst case scenario you have two LLONG_MAX
 #define MAX_STRING_LEN 10
 #define MAX_LABELS 5
