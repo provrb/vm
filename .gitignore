@@ -1,4 +1,5 @@
 .vscode/
+build/
 build/*.ino
 build/*.ino.cpp
 build/compile_commands.json
@@ -10,3 +11,4 @@ build/sketch/vm.ino.cpp
 build/sketch/vm.ino.cpp.o
 build/sketch/src/inst.c
 build/sketch/src/inst.c.o
+build/compile_result.json

@@ -12,9 +12,9 @@
 #include "macros.h" // for size defintions, i.e MAX_KEYWORD_LEN
 
 typedef enum {
-    ERR_INVALID_SYNTAX,
-    ERR_RUNTIME_EXCEPTION,
-    ERR_TYPE_ERROR,
+  ERR_INVALID_SYNTAX,
+  ERR_RUNTIME_EXCEPTION,
+  ERR_TYPE_ERROR,
 } Error;
 
 /// @brief More information about an instruction
@@ -24,35 +24,35 @@ typedef enum {
 /// line number the instruction is on
 /// and the actual raw line contents, e.g 'push 8'
 typedef struct {
-    Instruction inst;
-    char* text;
-    char* filepath;
-    unsigned int line;
+  Instruction inst;
+  char *text;
+  char *filepath;
+  unsigned int line;
 } Token;
 
 typedef enum {
-    NONE = 0,
-    PARSE,
-    PARSE_KWD,
-    PARSE_OPND,
-    PARSE_LABEL,
-    SKIP_LINE,
-    SKIP_SPACES,
+  NONE = 0,
+  PARSE,
+  PARSE_KWD,
+  PARSE_OPND,
+  PARSE_LABEL,
+  SKIP_LINE,
+  SKIP_SPACES,
 } LexerState;
 
 typedef struct {
-    long charIndex;
-    char* text;
-    long textLength;
-    long lineNumber;
-    char* filePath;
-    LexerState state;
+  long charIndex;
+  char *text;
+  long textLength;
+  long lineNumber;
+  char *filePath;
+  LexerState state;
 
-    Token tokens[MAX_PROGRAM_SIZE];
-    unsigned int numTokens;
+  Token tokens[MAX_PROGRAM_SIZE];
+  unsigned int numTokens;
 
-    Label labels[MAX_LABELS];
-    unsigned short numLabels;
+  Label labels[MAX_LABELS];
+  unsigned short numLabels;
 } Lexer;
 
 /// @brief An entry to represent relationship between string and enum
@@ -61,13 +61,13 @@ typedef struct {
 /// Map string keyword to opcode
 /// Necessary when parsing language
 typedef struct {
-    char keyword[MAX_KEYWORD_LEN];
-    Opcode opcode;
+  char keyword[MAX_KEYWORD_LEN];
+  Opcode opcode;
 } OpcodeEntry;
 
 /// File I/O operations
 #ifndef USING_ARDUINO
-char* ReadFromFile(char* path, int* stringLength);
+char *ReadFromFile(char *path, int *stringLength);
 #endif
 
 /// Error handling
@@ -75,8 +75,8 @@ char* ReadFromFile(char* path, int* stringLength);
 /// .pvb language errors like segmentation faults in c
 /// or basic syntax errors
 
-void SyntaxError(Lexer* lexer, char* optMsg);
-void TypeError(Lexer* lexer, char* optMsg);
+void SyntaxError(Lexer *lexer, char *optMsg);
+void TypeError(Lexer *lexer, char *optMsg);
 
 /// Lexical analysis
 ///
@@ -87,34 +87,34 @@ void TypeError(Lexer* lexer, char* optMsg);
 /// @param operands - array of operands to store the converted operand
 /// @param index - index to store the converted operand
 /// @param operand - operand to convert
-void ToOperandType(Operand* operands, int index, char* operand);
+void ToOperandType(Operand *operands, int index, char *operand);
 
 /// @brief Skip all blank characters until a non-blank character is reached
 /// @param lexer - current lexer context
-void SkipSpaces(Lexer* lexer);
+void SkipSpaces(Lexer *lexer);
 
 /// @brief Parse one operand for an opcode instruction
 /// @param lexer - current lexer context
 /// @param opcode - opcode to search operands for
 /// @return - string version of one operand
-char* ParseOperand(Lexer* lexer, Opcode opcode);
+char *ParseOperand(Lexer *lexer, Opcode opcode);
 
 /// @brief Parse operands required for an operation
 /// @param lexer - current lexer context
 /// @param opcode - opcode
 /// @param operands - out array that stores the number operands
-void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands);
+void ParseOperands(Lexer *lexer, Opcode opcode, Operand *operands);
 
 /// @brief Get all text on a line number
 /// @param lexer - current lexer context
 /// @return - all text on the current line number or empty if error
-char* GetLine(Lexer* lexer);
+char *GetLine(Lexer *lexer);
 
 /// @brief
 /// @param lexer
 /// @param opcode
 /// @param operand
-void CheckOperandSyntax(Lexer* lexer, Opcode opcode, char* operand);
+void CheckOperandSyntax(Lexer *lexer, Opcode opcode, char *operand);
 
 /// @brief Return the number of operands needed for an opcode
 /// @param op - opcode to get number of operands for
@@ -128,29 +128,30 @@ int OperandsExpected(Opcode op);
 /// @param operands - list of operands
 /// @param lexer - lexer context
 /// @return - token
-Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer);
+Token NewToken(Opcode operation, char *keyword, Operand *operands,
+               Lexer *lexer);
 
 /// @brief Get an enum Opcode from a string, keyword
 /// @param keyword - string to convert into an opcode
 /// @return - Opcode representation of keyword or OP_UNKNOWN if failed
-Opcode OpcodeFromKeyword(char* keyword);
+Opcode OpcodeFromKeyword(char *keyword);
 
 /// @brief Read a file and try to make tokens out of text
 /// @param file - file path to read
 #ifndef USING_ARDUINO
-Lexer ParseTokens(char* path);
+Lexer ParseTokens(char *path);
 #elif defined(USING_ARDUINO)
-Lexer ParseTokens(char* text);
+Lexer ParseTokens(char *text);
 #endif
 
 /// @brief Get the starting index of a label from its name
 /// @param lexer - lexer context
 /// @param name - name of label
 /// @return - index of label or -1 if not found
-int LabelIndex(Lexer* lexer, char* name);
+int LabelIndex(Lexer *lexer, char *name);
 
 /// @brief Print all information about a token
 /// @param token - token to print information about
-void PrintToken(Token* token);
+void PrintToken(Token *token);
 
 #endif
