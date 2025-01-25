@@ -9,12 +9,12 @@ extern "C" {
     #include <stdlib.h> // malloc
 };
 
-/// Virtual Machine handing instructions
-Machine* _setup_machine(Instruction* insts) {
-
-    // return machine;
-}
-
+/// Call the high level 'OP_WRITE' instruction 
+/// in the vm to compute and write to arduino pin
+/// instead of doing it manually
+/// @param led - pin number to write to
+/// @param on - boolean, high or low state
+/// @param machine - machine context
 void high_level_write(int led, BOOL on, Machine* machine) {
     Serial.println("Interpreting...");
     Serial.flush();
@@ -43,6 +43,12 @@ void high_level_write(int led, BOOL on, Machine* machine) {
     RunInstructions(machine);
 }
 
+/// do the computations for digital write with
+/// instructions and don't use OP_WRITE
+/// use instructions like bit shift left, or
+/// @param led - pin number to write to
+/// @param on - boolean, high or low state
+/// @param machine - machine context
 void low_level_write(int led, BOOL on, Machine* machine) {
     unsigned short dd = 0x0;
     unsigned short port = 0x0;
