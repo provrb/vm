@@ -441,10 +441,23 @@ void RunInstructions(Machine* machine) {
         if (fd == FILE_INOPIN) {
 #ifndef USING_ARDUINO
             RuntimeError("not implemented");
+#else
+
+            int pin = Pop(machine);
+            int pb = PinBit(pin);
+            ArduinoPort port = PinPort(pin);
+            if (port == PORT_B) {
+                DDRB &= ~(1 << pb); // set port b as output
+                Push(machine, DATA_USING_I64( (INPB & (1 << pb)) >> pb ));
+            } else if (port == PORT_C) {
+                DDRC &= ~(1 << pb); // set port c as output
+                Push(machine, DATA_USING_I64(INPC & (1 << pb)));
+            } else if (port == PORT_D) {
+                DDRD &= ~(1 << pb); // set port d as output
+                Push(machine, DATA_USING_I64(INPD & (1 << pb)));
+            } else
+                RuntimeError("invalid pin");
 #endif
-
-            // read input from pin
-
         } else if (fd == FILE_STDIN) {
             // read input from stdin
             char buffer[MAX_STRING_LEN] = {0};

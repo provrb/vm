@@ -9,6 +9,7 @@ extern "C" {
     #include <stdlib.h> // malloc
 };
 
+
 /// Call the high level 'OP_WRITE' instruction 
 /// in the vm to compute and write to arduino pin
 /// instead of doing it manually
@@ -22,20 +23,16 @@ void high_level_write(int led, BOOL on, Machine* machine) {
     // Simulator instructions from the lexer
     Instruction insts[4];
 
-    // push 1 (true) to the stack, this is the state, led on
+    //  this is the pin to read
     insts[0].operation = OP_PUSH;
-    insts[0].data.value = DATA_USING_I64(on);
-
-    // push 11 to the stack, this is the pin to write to
-    insts[1].operation = OP_PUSH;
-    insts[1].data.value = DATA_USING_I64(led);
+    insts[0].data.value = DATA_USING_I64(led);
 
     // push 1 to the stack, this is the file descriptor
-    insts[2].operation = OP_PUSH;
-    insts[2].data.value = DATA_USING_I64(FILE_INOPIN);
+    insts[1].operation = OP_PUSH;
+    insts[1].data.value = DATA_USING_I64(FILE_INOPIN);
 
     // write to the pin
-    insts[3].operation = OP_WRITE;
+    insts[2].operation = OP_WRITE;
 
     machine->program = insts;
     machine->programSize = sizeof(insts) / sizeof(Instruction);
@@ -121,19 +118,57 @@ void low_level_write(int led, BOOL on, Machine* machine) {
     *pptr |= machine->memory[REG_R10].data.i64;
 }
 
+Machine machine = {0};
+
 void setup() {
     Serial.begin(9600);
 
-    Machine* machine = (Machine*)malloc(sizeof(Machine));
-    machine->stackSize = 0;
-    machine->ip = 0;
-    machine->labels[0] = Label{"start", 5, 0};
-    machine->rp = -1;
-    machine->ep = -1;
-    machine->numLabels = 1;
+    // Machine* machine = (Machine*)malloc(sizeof(Machine));
+    // machine->stackSize = 0;
+    // machine->ip = 0;
+    // machine->labels[0] = Label{"start", 5, 0};
+    // machine->rp = -1;
+    // machine->ep = -1;
+    // machine->numLabels = 1;
 
-    low_level_write(11, TRUE, machine);
+    // pinMode(11, INPUT);
+    // low_level_write(11, TRUE, machine);
     // high_level_write(11, TRUE, machine);
+
+
+    // Serial.println(machine.memory[REG_R13].data.i64);
 }
 
-void loop() {}
+void loop() {
+
+    machine.stackSize = 0;
+    machine.ip = 0;
+    machine.labels[0] = Label{"start", 5, 0};
+    machine.rp = -1;
+    machine.ep = -1;
+    machine.numLabels = 1;
+
+    Instruction insts[3];
+    
+    //  this is the pin to read
+    insts[0].operation = OP_PUSH;
+    insts[0].data.value = DATA_USING_I64(11);
+
+    // push 1 to the stack, this is the file descriptor
+    insts[1].operation = OP_PUSH;
+    insts[1].data.value = DATA_USING_I64(FILE_INOPIN);
+
+    // write to the pin
+    insts[2].operation = OP_READ;
+
+    machine.program = insts;
+    machine.programSize = sizeof(insts) / sizeof(Instruction);
+
+    RunInstructions(&machine);
+    for (int i =0; i<machine.stackSize;i++)
+        Serial.println(String(machine.stack[i].data.i64));
+
+    
+    // int buttonState = digitalRead(11);
+    // Serial.println(buttonState);
+}

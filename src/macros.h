@@ -21,10 +21,12 @@
 #define DDRB (*(volatile unsigned char*)0x24) // Data Direction Register for Port B
 #define DDRC (*(volatile unsigned char*)0x27) // Data Direction Register for Port C
 #define DDRD (*(volatile unsigned char*)0x2A) // Data Direction Register for Port D
-
 #define DRPORTB (*(volatile unsigned char*)0x25) // Port B Data Register
 #define DRPORTC (*(volatile unsigned char*)0x28) // Port C Data Register
 #define DRPORTD (*(volatile unsigned char*)0x2B) // Port D Data Register
+#define INPB (*(volatile unsigned char*)0x23)
+#define INPC (*(volatile unsigned char*)0x26)
+#define INPD (*(volatile unsigned char*)0x29)
 #elif !defined(USING_ARDUINO) // if not using arduino, the max sizes can be a bit bigger
 #define STACK_CAPACITY 2048
 #define MEMORY_CAPACITY 2048
