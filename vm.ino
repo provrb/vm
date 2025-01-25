@@ -130,7 +130,7 @@ void low_level_write(int led, BOOL on, Machine* machine) {
 
     // OR DRPORTB with (state << pb)
     insts[8].operation = OP_ORB;
-
+    
     // pop result into DRPORTB
     insts[9].operation = OP_POP;
     insts[9].data.registers.dest = REG_R10;
@@ -144,16 +144,41 @@ void low_level_write(int led, BOOL on, Machine* machine) {
     *pptr |= machine->memory[REG_R10].data.i64;
 }
 
+void low_level_analog_write(int led, int value) {
+    Instruction insts[3];
+
+    insts[0].operation = OP_PUSH;
+    insts[0].data.value = DATA_USING_I64(value);
+
+    insts[1].operation = OP_PUSH;
+    insts[1].data.value = DATA_USING_I64(led);
+
+    insts[2].operation = OP_ANWRITE;
+
+    Machine machine = {0};
+    machine.labels[0] = Label{"start", 5, 0};
+    machine.rp = -1;
+    machine.ep = -1;
+    machine.numLabels = 1;
+    machine.program = insts;
+    machine.programSize = sizeof(insts) / sizeof(Instruction);
+
+    RunInstructions(&machine);
+}
+
 void setup() {
     Serial.begin(9600);
 
     // low_level_write(11, TRUE, machine);
     // high_level_write(11, TRUE, machine);
-
 }
 
 void loop() {
+
     // Serial.println(low_level_read(11));
     // int buttonState = digitalRead(11);
     // Serial.println(buttonState);
+    low_level_analog_write(9, 50);
+    low_level_analog_write(10, 100);
+    // low_level_analog_write(9, 255);
 }

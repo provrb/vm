@@ -4,7 +4,7 @@
 /// neater. Instead of having to do {.operation = OP_PUSH, .data.value = 3}
 /// everytime you have to push a value, you can simply use an instruction macro.
 
-// #define USING_ARDUINO // comment this out if not using arduino
+#define USING_ARDUINO // comment this out if not using arduino
 
 #ifdef USING_ARDUINO
 #define STACK_CAPACITY 15
@@ -18,12 +18,50 @@
 
 // ripped from the internet
 // registers for the arduino to control pin states
+
+#define COM2A1 7
+#define COM2B1 5
+#define COM0B1 5
+#define COM0A1 7
+#define COM1A1 7
+#define COM1B1 5
+#define WGM20 1
+#define WGM21 1
+#define WGM00 0
+#define WGM01 1
+#define WGM10 10
+#define WGM11 1
+#define WGM12 3
+#define CS21 1
+#define CS01 1
+#define CS11 11
+
+
+// timer counter registers
+#define TCCR0A (*(volatile unsigned char*)0x44)
+#define TCCR0B (*(volatile unsigned char*)0x45)
+#define OCR0A (*(volatile unsigned char*)0x47) // output compare registers
+#define OCR0B (*(volatile unsigned char*)0x48)
+
+#define TCCR1A (*(volatile unsigned char*)0x80)
+#define TCCR1B (*(volatile unsigned char*)0x81)
+#define OCR1A (*(volatile unsigned short*)0x88)
+#define OCR1B (*(volatile unsigned short*)0x8A)
+
+#define TCCR2A (*(volatile unsigned char*)0xB0)
+#define TCCR2B (*(volatile unsigned char*)0xB1)
+#define OCR2A (*(volatile unsigned char*)0xB3)
+#define OCR2B (*(volatile unsigned char*)0xB4)
 #define DDRB (*(volatile unsigned char*)0x24)    // Data Direction Register for Port B
 #define DDRC (*(volatile unsigned char*)0x27)    // Data Direction Register for Port C
 #define DDRD (*(volatile unsigned char*)0x2A)    // Data Direction Register for Port D
+
+// port registers
 #define DRPORTB (*(volatile unsigned char*)0x25) // Port B Data Register
 #define DRPORTC (*(volatile unsigned char*)0x28) // Port C Data Register
 #define DRPORTD (*(volatile unsigned char*)0x2B) // Port D Data Register
+
+// pin input addresses
 #define INPB (*(volatile unsigned char*)0x23)
 #define INPC (*(volatile unsigned char*)0x26)
 #define INPD (*(volatile unsigned char*)0x29)

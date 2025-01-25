@@ -438,9 +438,7 @@ void RunInstructions(Machine* machine) {
     case OP_READ: {
         unsigned int fd = Pop(machine);
         if (fd == FILE_INOPIN) {
-#ifndef USING_ARDUINO
-            RuntimeError("not implemented");
-#else
+#ifdef USING_ARDUINO
             int pin = Pop(machine);
             int pb = PinBit(pin);
             ArduinoPort port = PinPort(pin);
@@ -478,9 +476,7 @@ void RunInstructions(Machine* machine) {
             char* asString = (char*)toWrite; // purposly seg fault if not a string
             OutputString(asString, fd);
         } else if (fd == FILE_INOPIN) {
-#ifndef USING_ARDUINO
-            RuntimeError("not implemented");
-#else
+#ifdef USING_ARDUINO
             int state = Pop(machine);
             if (state != 0 && state != 1)
                 RuntimeError("invalid state for pin");
@@ -502,6 +498,52 @@ void RunInstructions(Machine* machine) {
         }
         break;
     }
+#ifdef USING_ARDUINO
+    case OP_ANWRITE: {
+        unsigned int pin = Pop(machine);
+        unsigned int value = Pop(machine);
+        unsigned int pb = PinBit(pin);
+        ArduinoPort port = PinPort(pin);
+
+        // First, set the Data direction register for the pin to output
+        if (port == PORT_B) DDRB |= (1 << pb);
+        else if (port == PORT_C) DDRC |= (1 << pb);
+        else if (port == PORT_D) DDRD |= (1 << pb);
+        else RuntimeError("invalid pin port");
+
+        // Set the timer/counter control register to fast pwm and non inverting mode
+        // Set part b of the timer/counter prescaler to 8
+        // finally, set the output compare register to the value to set the pin
+        if (pin == 3) {
+            TCCR2A |= (1 << COM2B1) | (1 << WGM20) | (1 << WGM21);
+            TCCR2B |= (1 << CS21);
+            OCR2B = value;
+        } else if (pin == 5) {
+            TCCR0A |= (1 << COM0B1) | (1 << WGM00) | (1 << WGM01); 
+            TCCR0B |= (1 << CS01);
+            OCR0B = value;
+        } else if (pin == 6) {
+            TCCR0A |= (1 << COM0A1) | (1 << WGM00) | (1 << WGM01);
+            TCCR0B |= (1 << CS01);
+            OCR0A = value;
+        } else if (pin == 9) {
+            TCCR1A |= (1 << COM1A1) | (1 << WGM10) | (1 << WGM11);
+            TCCR1B |= (1 << WGM12) | (1 << CS11); 
+            OCR1A = value;       
+        } else if (pin == 10) { 
+            TCCR1A |= (1 << COM1B1) | (1 << WGM10) | (1 << WGM11);
+            TCCR1B |= (1 << WGM12) | (1 << CS11);
+            OCR1B = value;
+        } else if (pin == 11) { 
+            TCCR2A |= (1 << COM2A1) | (1 << WGM20) | (1 << WGM21); 
+            TCCR2B |= (1 << CS21);          
+            OCR2A = value;
+        } else
+            RuntimeError("invalid pin");
+
+        break;
+    }
+#endif
     case OP_PUSH:
         if (inst.data.value.type == TY_STR &&
             GetRegisterFromName((char*)inst.data.value.data.ptr) != REG_UNKNOWN) {

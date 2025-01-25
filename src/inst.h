@@ -106,6 +106,7 @@ typedef enum {
 
     OP_WRITE, // write to stdout or stderr or write pin for arduino
     OP_READ,  // stdin or read pin for arduino
+    OP_ANWRITE, // arduino only analog write
 
     OP_EXIT,
 } Opcode;
