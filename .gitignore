@@ -1,5 +1,4 @@
 .vscode/
-build/
 build/*.ino
 build/*.ino.cpp
 build/compile_commands.json

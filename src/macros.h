@@ -4,7 +4,7 @@
 /// neater. Instead of having to do {.operation = OP_PUSH, .data.value = 3}
 /// everytime you have to push a value, you can simply use an instruction macro.
 
-#define USING_ARDUINO // comment this out if not using arduino
+// #define USING_ARDUINO // comment this out if not using arduino
 
 #ifdef USING_ARDUINO
 #define STACK_CAPACITY 15
@@ -18,9 +18,9 @@
 
 // ripped from the internet
 // registers for the arduino to control pin states
-#define DDRB (*(volatile unsigned char*)0x24) // Data Direction Register for Port B
-#define DDRC (*(volatile unsigned char*)0x27) // Data Direction Register for Port C
-#define DDRD (*(volatile unsigned char*)0x2A) // Data Direction Register for Port D
+#define DDRB (*(volatile unsigned char*)0x24)    // Data Direction Register for Port B
+#define DDRC (*(volatile unsigned char*)0x27)    // Data Direction Register for Port C
+#define DDRD (*(volatile unsigned char*)0x2A)    // Data Direction Register for Port D
 #define DRPORTB (*(volatile unsigned char*)0x25) // Port B Data Register
 #define DRPORTC (*(volatile unsigned char*)0x28) // Port C Data Register
 #define DRPORTD (*(volatile unsigned char*)0x2B) // Port D Data Register
