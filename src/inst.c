@@ -683,9 +683,16 @@ void RunInstructions(Machine* machine) {
         Move(machine, inst.data.value, inst.data.registers.dest);
         break;
     case OP_SUB: {
-        int b = Pop(machine);
-        int a = Pop(machine);
-        Push(machine, DATA_USING_I64(a - b));
+        long a = 0;
+        // constant value
+        if (strcmp(GetRegisterName(inst.data.value.data.i64), "unknown") == 0) {
+            RemoveChar((char*)inst.data.value.data.ptr, LXR_CONSTANT_PREFIX);
+            a = atol((char*)inst.data.value.data.ptr);
+        } else
+            a = machine->memory[inst.data.value.data.i64].data.i64;
+
+        long b = machine->memory[inst.data.registers.dest].data.i64;
+        machine->memory[inst.data.registers.dest] = DATA_USING_I64(b - a);
         break;
     }
     case OP_CLR:

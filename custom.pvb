@@ -1,5 +1,5 @@
 _start:
     mov $5, rax
-    add $10, rax
+    sub $3, rax
     push rax
     print
