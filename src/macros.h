@@ -88,6 +88,12 @@
 #define LXR_CONSTANT_PREFIX '$'
 #define LXR_ESCAPE_CHAR '\\'
 
+/// Flag operatons
+#define FLAG_SF (1 << 0)
+#define FLAG_CF (1 << 1)
+#define FLAG_ZF (1 << 2)
+#define FLAG_OF (1 << 3)
+
 // types
 typedef int BOOL;
 

@@ -8,15 +8,15 @@
 #ifndef USING_ARDUINO
 
 static const OpcodeEntry opcodeTable[] = {
-    {"nop", OP_NOP},   {"push", OP_PUSH},    {"pop", OP_POP},   {"mov", OP_MOV},
-    {"swap", OP_SWAP}, {"jmp", OP_JMP},      {"ret", OP_RET},   {"jne", OP_JNE},
-    {"je", OP_JE},     {"jg", OP_JG},        {"call", OP_CALL}, {"jge", OP_JGE},
-    {"jl", OP_JL},     {"jle", OP_JLE},      {"add", OP_ADD},   {"sub", OP_SUB},
-    {"mul", OP_MUL},   {"div", OP_DIV},      {"mod", OP_MOD},   {"neg", OP_NEG},
-    {"AND", OP_ANDB},  {"OR", OP_ORB},       {"NOT", OP_NOTB},  {"XOR", OP_XORB},
-    {"shl", OP_SHL},   {"shr", OP_SHR},      {"dup", OP_DUP},   {"clear", OP_CLR},
-    {"size", OP_SIZE}, {"print", OP_PRNT},   {"exit", OP_EXIT}, {"write", OP_WRITE},
-    {"read", OP_READ}, {"null", OP_UNKNOWN},
+    {"nop", OP_NOP},     {"push", OP_PUSH}, {"pop", OP_POP},      {"mov", OP_MOV},
+    {"swap", OP_SWAP},   {"jmp", OP_JMP},   {"ret", OP_RET},      {"jne", OP_JNE},
+    {"je", OP_JE},       {"jg", OP_JG},     {"call", OP_CALL},    {"jge", OP_JGE},
+    {"jl", OP_JL},       {"jle", OP_JLE},   {"add", OP_ADD},      {"sub", OP_SUB},
+    {"cmp", OP_CMP},     {"mul", OP_MUL},   {"div", OP_DIV},      {"mod", OP_MOD},
+    {"neg", OP_NEG},     {"AND", OP_ANDB},  {"OR", OP_ORB},       {"NOT", OP_NOTB},
+    {"XOR", OP_XORB},    {"shl", OP_SHL},   {"shr", OP_SHR},      {"dup", OP_DUP},
+    {"clear", OP_CLR},   {"size", OP_SIZE}, {"print", OP_PRNT},   {"exit", OP_EXIT},
+    {"write", OP_WRITE}, {"read", OP_READ}, {"null", OP_UNKNOWN},
 };
 
 Opcode OpcodeFromKeyword(char* keyword) {
@@ -163,6 +163,7 @@ int OperandsExpected(Opcode op) {
     case OP_SUB:
     case OP_ADD:
     case OP_MOV:
+    case OP_CMP:
         return 2;
 
     // operations that require 1 operand
@@ -259,7 +260,8 @@ Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer)
 
     switch (OperandsExpected(operation)) {
     case 2:
-        if (operation == OP_MOV || operation == OP_SUB || operation == OP_ADD) {
+        if (operation == OP_MOV || operation == OP_SUB || operation == OP_ADD ||
+            operation == OP_CMP) {
             if (operands[0].type == TY_STR &&
                 ((char*)operands[0].data.ptr)[0] == LXR_CONSTANT_PREFIX) {
                 i.data.value.data.ptr = operands[0].data.ptr;
@@ -271,7 +273,8 @@ Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer)
             }
         }
 
-        if ((operation != OP_MOV || operation != OP_SUB || operation != OP_ADD) &&
+        if ((operation != OP_MOV || operation != OP_SUB || operation != OP_ADD ||
+             operation != OP_CMP) &&
             (operands[0].type != TY_I64 || operands[1].type != TY_I64))
             TypeError(lexer, "expected I64 operand");
 
@@ -339,7 +342,7 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
     }
 
     if (lexer->text[lexer->charIndex] == LXR_CONSTANT_PREFIX &&
-        (opcode == OP_MOV || opcode == OP_ADD || opcode == OP_SUB)) {
+        (opcode == OP_CMP || opcode == OP_MOV || opcode == OP_ADD || opcode == OP_SUB)) {
         char* operand = malloc(MAX_OPERAND_LEN * sizeof(char));
         int operandIndex = 0;
         operand[operandIndex++] = LXR_CONSTANT_PREFIX;
@@ -358,7 +361,7 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
 
         operand[operandIndex] = '\0';
         return operand;
-    } else if (opcode == OP_MOV || opcode == OP_ADD || opcode == OP_SUB) {
+    } else if (opcode == OP_MOV || opcode == OP_ADD || opcode == OP_SUB || opcode == OP_CMP) {
         char* reg = malloc(12 * sizeof(char));
         int regStrIndex = 0;
         while (isdigit(lexer->text[lexer->charIndex]) || isalpha(lexer->text[lexer->charIndex])) {
@@ -393,6 +396,7 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
             lexer->charIndex++;
         }
         labelName[labelNameIndex - 1] = '\0';
+        printf("Label name for instruction: %s\n", labelName);
         return labelName;
     }
 
@@ -508,7 +512,7 @@ void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
         if (operand == NULL)
             SyntaxError(lexer, "missing operand");
 
-        if ((opcode == OP_MOV || opcode == OP_ADD || opcode == OP_SUB) &&
+        if ((opcode == OP_CMP || opcode == OP_MOV || opcode == OP_ADD || opcode == OP_SUB) &&
             operand[0] == LXR_CONSTANT_PREFIX) {
             operands[0].data.ptr = operand;
             operands[0].type = TY_STR;
@@ -673,9 +677,18 @@ Lexer ParseTokens(char* path) {
 
                 keyword[index++] = lexer.text[lexer.charIndex++];
 
+                if (OpcodeFromKeyword(keyword) != OP_UNKNOWN) {
+                    printf("valid keyword. '%s' extra character. '%c'.\n", keyword,
+                           lexer.text[lexer.charIndex]);
+                    if (isalpha(lexer.text[lexer.charIndex]) ||
+                        isdigit(lexer.text[lexer.charIndex])) {
+                        continue;
+                    }
+                }
+
                 if (OpcodeFromKeyword(keyword) == OP_UNKNOWN &&
-                    (!isalpha(lexer.text[lexer.charIndex + 1]) ||
-                     !isdigit(lexer.text[lexer.charIndex + 1])))
+                    (!isalpha(lexer.text[lexer.charIndex]) ||
+                     !isdigit(lexer.text[lexer.charIndex])))
                     continue;
             }
 
@@ -687,6 +700,8 @@ Lexer ParseTokens(char* path) {
             keyword[index] = '\0';
             lexer.state = PARSE;
         }
+
+        printf("Keyword %s\n", keyword);
 
         // get opcode from keyword as an Opcode enum
         Opcode opcode = OpcodeFromKeyword(keyword);

@@ -1,5 +1,33 @@
-_start:
-    mov $5, rax
-    sub $3, rax
+_exit:
     push rax
     print
+    mov $0, rax
+    exit
+
+_start:
+    mov $0, rax
+
+_loop:
+    add $1, rax; add 1 to rax
+    cmp $5, rax
+    jg _exit
+    jle _loop
+
+void print() {
+    // print stack
+}
+
+int main() {
+    int rax = 0;
+
+    while (rax <= 5) {
+        rax += 1;
+
+        if (rax > 5) {
+            print();
+            return 0;
+        }
+    }
+
+    return 0;
+}

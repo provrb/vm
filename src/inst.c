@@ -574,30 +574,45 @@ void RunInstructions(Machine* machine) {
     case OP_EXIT:
         printf("exiting with code %ld.\n", machine->memory[REG_RAX].data.i64);
         exit(machine->memory[REG_RAX].data.i64); // exit code saved in RAX register
-    case OP_JLE: {
-        JUMP_IF(<=, machine, inst.data.value.data.i64, &jump);
+    case OP_JLE:
+        if (machine->EFLAGS & FLAG_ZF ||
+            (machine->EFLAGS & FLAG_SF) != (machine->EFLAGS & FLAG_OF)) {
+            jump = TRUE;
+            JumpTo(machine, inst.data.value.data.i64);
+        }
         break;
-    }
-    case OP_JL: {
-        JUMP_IF(<, machine, inst.data.value.data.i64, &jump);
+    case OP_JL:
+        if ((machine->EFLAGS & FLAG_SF) != (machine->EFLAGS & FLAG_OF)) {
+            jump = TRUE;
+            JumpTo(machine, inst.data.value.data.i64);
+        }
         break;
-    }
-    case OP_JGE: {
-        JUMP_IF(>=, machine, inst.data.value.data.i64, &jump);
+    case OP_JGE:
+        if (machine->EFLAGS & FLAG_ZF ||
+            (machine->EFLAGS & FLAG_SF) == (machine->EFLAGS & FLAG_OF)) {
+            jump = TRUE;
+            JumpTo(machine, inst.data.value.data.i64);
+        }
         break;
-    }
-    case OP_JG: {
-        JUMP_IF(>, machine, inst.data.value.data.i64, &jump);
+    case OP_JG:
+        if (!(machine->EFLAGS & FLAG_ZF) &&
+            (machine->EFLAGS & FLAG_SF) == (machine->EFLAGS & FLAG_OF)) {
+            jump = TRUE;
+            JumpTo(machine, inst.data.value.data.i64);
+        }
         break;
-    }
-    case OP_JE: {
-        JUMP_IF(==, machine, inst.data.value.data.i64, &jump);
+    case OP_JE:
+        if (machine->EFLAGS & FLAG_ZF) {
+            jump = TRUE;
+            JumpTo(machine, inst.data.value.data.i64);
+        }
         break;
-    }
-    case OP_JNE: {
-        JUMP_IF(!=, machine, inst.data.value.data.i64, &jump);
+    case OP_JNE:
+        if (!(machine->EFLAGS & FLAG_ZF)) {
+            jump = TRUE;
+            JumpTo(machine, inst.data.value.data.i64);
+        }
         break;
-    }
     case OP_JMP:
         jump = TRUE;
         JumpTo(machine, inst.data.value.data.i64);
@@ -646,6 +661,39 @@ void RunInstructions(Machine* machine) {
         int val = Pop(machine);
         val *= -1;
         Push(machine, DATA_USING_I64(val));
+        break;
+    }
+    case OP_CMP: {
+        machine->EFLAGS = 0;
+
+        long a = 0;
+        if (strcmp(GetRegisterName(inst.data.value.data.i64), "unknown") == 0) {
+            RemoveChar((char*)inst.data.value.data.ptr, LXR_CONSTANT_PREFIX);
+            a = atol((char*)inst.data.value.data.ptr);
+        } else
+            a = machine->memory[inst.data.value.data.i64].data.i64;
+
+        long b = machine->memory[inst.data.registers.dest].data.i64;
+        long result = b - a;
+
+        // zero flag
+        if (result == 0)
+            machine->EFLAGS |= FLAG_ZF;
+        else
+            machine->EFLAGS &= ~FLAG_ZF;
+
+        // sign flag
+        if (result < 0)
+            machine->EFLAGS |= FLAG_SF;
+        else
+            machine->EFLAGS &= ~FLAG_SF;
+
+        // overflow flag
+        if ((b ^ a) & (b ^ result) < 0)
+            machine->EFLAGS |= FLAG_OF;
+        else
+            machine->EFLAGS &= ~FLAG_OF;
+
         break;
     }
     case OP_ADD: {

@@ -9,6 +9,8 @@
 
 #include "macros.h"
 
+#include <stdint.h>
+
 /// Compare last two values in stack based off operator
 /// if the expression evaluates to true, jump to 'addr' and set res to TRUE
 ///
@@ -77,6 +79,8 @@ typedef enum {
 
     OP_CALL,
     OP_RET,
+
+    OP_CMP,
 
     OP_JMP,
     OP_JNE,
@@ -171,22 +175,25 @@ typedef struct {
 } Label;
 
 typedef struct {
-    Data stack[STACK_CAPACITY];
-    unsigned int stackSize;
-
-    Data memory[MEMORY_CAPACITY];
-    unsigned int memorySize;
+    Data stack[STACK_CAPACITY], memory[MEMORY_CAPACITY];
+    uint32_t stackSize, memorySize;
 
     Label labels[MAX_LABELS];
-    unsigned int numLabels;
+    uint32_t numLabels;
 
     Instruction* program;
-    unsigned int programSize;
+    uint32_t programSize;
 
-    unsigned int ip; // instruction
-    unsigned int rp; // return pointer. index to set ip to after we are finished in a label
+    uint32_t ip; // instruction
+    uint32_t rp; // return pointer. index to set ip to after we are finished in a label
 
-    BOOL started;
+    // flags
+    uint8_t EFLAGS;
+    uint8_t sf; // sign flag
+    uint8_t zf; // zero flag
+    uint8_t cf; // carry flag
+
+    BOOL started; // executed the first instruction
 } Machine;
 
 // Create Data structures using different available types
