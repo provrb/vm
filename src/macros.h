@@ -4,7 +4,7 @@
 /// neater. Instead of having to do {.operation = OP_PUSH, .data.value = 3}
 /// everytime you have to push a value, you can simply use an instruction macro.
 
-#define USING_ARDUINO // comment this out if not using arduino
+// #define USING_ARDUINO // comment this out if not using arduino
 
 #ifdef USING_ARDUINO
 #define STACK_CAPACITY 15
@@ -36,7 +36,6 @@
 #define CS01 1
 #define CS11 11
 
-
 // timer counter registers
 #define TCCR0A (*(volatile unsigned char*)0x44)
 #define TCCR0B (*(volatile unsigned char*)0x45)
@@ -52,9 +51,9 @@
 #define TCCR2B (*(volatile unsigned char*)0xB1)
 #define OCR2A (*(volatile unsigned char*)0xB3)
 #define OCR2B (*(volatile unsigned char*)0xB4)
-#define DDRB (*(volatile unsigned char*)0x24)    // Data Direction Register for Port B
-#define DDRC (*(volatile unsigned char*)0x27)    // Data Direction Register for Port C
-#define DDRD (*(volatile unsigned char*)0x2A)    // Data Direction Register for Port D
+#define DDRB (*(volatile unsigned char*)0x24) // Data Direction Register for Port B
+#define DDRC (*(volatile unsigned char*)0x27) // Data Direction Register for Port C
+#define DDRD (*(volatile unsigned char*)0x2A) // Data Direction Register for Port D
 
 // port registers
 #define DRPORTB (*(volatile unsigned char*)0x25) // Port B Data Register

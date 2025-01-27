@@ -75,6 +75,9 @@ typedef enum {
     OP_MOV,
     OP_SWAP,
 
+    OP_CALL,
+    OP_RET,
+
     OP_JMP,
     OP_JNE,
     OP_JE,
@@ -104,8 +107,8 @@ typedef enum {
     OP_SIZE,
     OP_PRNT,
 
-    OP_WRITE, // write to stdout or stderr or write pin for arduino
-    OP_READ,  // stdin or read pin for arduino
+    OP_WRITE,   // write to stdout or stderr or write pin for arduino
+    OP_READ,    // stdin or read pin for arduino
     OP_ANWRITE, // arduino only analog write
 
     OP_EXIT,
@@ -151,7 +154,7 @@ typedef struct {
     Opcode operation;
     struct {
         Operand value;
-        union {
+        struct {
             unsigned int src;
             unsigned int dest;
         } registers;
@@ -177,13 +180,13 @@ typedef struct {
     Label labels[MAX_LABELS];
     unsigned int numLabels;
 
-    unsigned int started;
-
-    Instruction* program; // this should be an array of Instruction
+    Instruction* program;
     unsigned int programSize;
+
     unsigned int ip; // instruction
-    unsigned int ep; // current label entry point index
-    unsigned int rp; // resume index. index to set ip to after we are finished in a label
+    unsigned int rp; // return pointer. index to set ip to after we are finished in a label
+
+    BOOL started;
 } Machine;
 
 // Create Data structures using different available types

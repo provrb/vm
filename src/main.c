@@ -18,7 +18,6 @@ int main() {
     machine->ip = 0;
     machine->program = insts;
     machine->rp = -1;
-    machine->ep = -1;
     machine->programSize = lexer.numTokens;
     for (int i = 0; i < lexer.numLabels; i++) {
         printf("label: %s\n", lexer.labels[i].name);

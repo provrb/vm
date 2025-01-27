@@ -29,7 +29,6 @@ int low_level_read(int led) {
     Machine machine = {0};
     machine.labels[0] = Label{"start", 5, 0};
     machine.rp = -1;
-    machine.ep = -1;
     machine.numLabels = 1;
     machine.program = insts;
     machine.programSize = sizeof(insts) / sizeof(Instruction);
@@ -158,7 +157,6 @@ void low_level_analog_write(int led, int value) {
     Machine machine = {0};
     machine.labels[0] = Label{"start", 5, 0};
     machine.rp = -1;
-    machine.ep = -1;
     machine.numLabels = 1;
     machine.program = insts;
     machine.programSize = sizeof(insts) / sizeof(Instruction);

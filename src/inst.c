@@ -194,11 +194,16 @@ void PrintStack(Machine* machine) {
 }
 
 void JumpTo(Machine* machine, int dest) {
-    if (dest > machine->programSize || dest < 0) {
-        return;
-    }
+    if (dest > machine->programSize || dest < 0)
+        RuntimeError("Jumping out of bounds. Aborted.");
 
-    machine->ep = dest;
+    machine->ip = dest;
+}
+
+void Call(Machine* machine, int dest) {
+    if (dest > machine->programSize || dest < 0)
+        RuntimeError("Calling out of bounds. Aborted.");
+
     machine->rp = machine->ip;
     machine->ip = dest;
 }
@@ -278,20 +283,6 @@ int GetEntryPoint(Machine* machine) {
     }
 
     RuntimeError("no entry point"); // no entry point
-}
-
-int EndOfLabel(Machine* machine) {
-    int nextLabelIndex = -1;
-    int closestIndex = 2147483647;
-
-    for (int i = 0; i < machine->numLabels; i++) {
-        if (machine->labels[i].index == machine->ep) {
-            nextLabelIndex = machine->labels[i + 1].index - 1;
-            break;
-        }
-    }
-
-    return nextLabelIndex;
 }
 
 void Zero(Data* memory, Register reg) { memory[reg] = DATA_USING_I64(0); }
@@ -414,15 +405,6 @@ void OutputString(char* string, FileDescriptor fd) {
 }
 
 void RunInstructions(Machine* machine) {
-    long end = EndOfLabel(machine);
-    if (end != -1 && machine->ip > end && machine->rp != -1) {
-        machine->ip = machine->rp + 1;
-        machine->rp = -1;
-        machine->ep = -1;
-        RunInstructions(machine);
-        return;
-    }
-
     if (machine->ip == 0 && machine->started == FALSE) {
         machine->ip = GetEntryPoint(machine);
         machine->started = TRUE;
@@ -435,6 +417,13 @@ void RunInstructions(Machine* machine) {
     Instruction inst = ((Instruction*)machine->program)[machine->ip];
 
     switch (inst.operation) {
+    case OP_RET:
+        machine->ip = machine->rp;
+        break;
+    case OP_CALL:
+        jump = TRUE;
+        Call(machine, inst.data.value.data.i64);
+        break;
     case OP_READ: {
         unsigned int fd = Pop(machine);
         if (fd == FILE_INOPIN) {
@@ -506,10 +495,14 @@ void RunInstructions(Machine* machine) {
         ArduinoPort port = PinPort(pin);
 
         // First, set the Data direction register for the pin to output
-        if (port == PORT_B) DDRB |= (1 << pb);
-        else if (port == PORT_C) DDRC |= (1 << pb);
-        else if (port == PORT_D) DDRD |= (1 << pb);
-        else RuntimeError("invalid pin port");
+        if (port == PORT_B)
+            DDRB |= (1 << pb);
+        else if (port == PORT_C)
+            DDRC |= (1 << pb);
+        else if (port == PORT_D)
+            DDRD |= (1 << pb);
+        else
+            RuntimeError("invalid pin port");
 
         // Set the timer/counter control register to fast pwm and non inverting mode
         // Set part b of the timer/counter prescaler to 8
@@ -519,7 +512,7 @@ void RunInstructions(Machine* machine) {
             TCCR2B |= (1 << CS21);
             OCR2B = value;
         } else if (pin == 5) {
-            TCCR0A |= (1 << COM0B1) | (1 << WGM00) | (1 << WGM01); 
+            TCCR0A |= (1 << COM0B1) | (1 << WGM00) | (1 << WGM01);
             TCCR0B |= (1 << CS01);
             OCR0B = value;
         } else if (pin == 6) {
@@ -528,15 +521,15 @@ void RunInstructions(Machine* machine) {
             OCR0A = value;
         } else if (pin == 9) {
             TCCR1A |= (1 << COM1A1) | (1 << WGM10) | (1 << WGM11);
-            TCCR1B |= (1 << WGM12) | (1 << CS11); 
-            OCR1A = value;       
-        } else if (pin == 10) { 
+            TCCR1B |= (1 << WGM12) | (1 << CS11);
+            OCR1A = value;
+        } else if (pin == 10) {
             TCCR1A |= (1 << COM1B1) | (1 << WGM10) | (1 << WGM11);
             TCCR1B |= (1 << WGM12) | (1 << CS11);
             OCR1B = value;
-        } else if (pin == 11) { 
-            TCCR2A |= (1 << COM2A1) | (1 << WGM20) | (1 << WGM21); 
-            TCCR2B |= (1 << CS21);          
+        } else if (pin == 11) {
+            TCCR2A |= (1 << COM2A1) | (1 << WGM20) | (1 << WGM21);
+            TCCR2B |= (1 << CS21);
             OCR2A = value;
         } else
             RuntimeError("invalid pin");
@@ -656,9 +649,16 @@ void RunInstructions(Machine* machine) {
         break;
     }
     case OP_ADD: {
-        int a = Pop(machine);
-        int b = Pop(machine);
-        Push(machine, DATA_USING_I64(a + b));
+        long a = 0;
+        // constant value
+        if (strcmp(GetRegisterName(inst.data.value.data.i64), "unknown") == 0) {
+            RemoveChar((char*)inst.data.value.data.ptr, LXR_CONSTANT_PREFIX);
+            a = atol((char*)inst.data.value.data.ptr);
+        } else
+            a = machine->memory[inst.data.value.data.i64].data.i64;
+
+        long b = machine->memory[inst.data.registers.dest].data.i64;
+        machine->memory[inst.data.registers.dest] = DATA_USING_I64(a + b);
         break;
     }
     case OP_DIV: {
