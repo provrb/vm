@@ -4,8 +4,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int main() {
-    Lexer lexer = ParseTokens("./custom.pvb");
+int main(int argc, char** argv) {
+    if (argc == 1) {
+        fprintf(stderr,
+                "Insufficient amount of arguments passed. No file path specified. Aborted.\n");
+        exit(1);
+    }
+
+    Lexer lexer = ParseTokens(argv[1]);
 
     Instruction* insts = malloc(lexer.numTokens * sizeof(Instruction));
     for (unsigned int i = 0; i < lexer.numTokens; i++) {
@@ -20,7 +26,6 @@ int main() {
     machine->rp = -1;
     machine->programSize = lexer.numTokens;
     for (int i = 0; i < lexer.numLabels; i++) {
-        printf("label: %s\n", lexer.labels[i].name);
         machine->labels[i] = lexer.labels[i];
     }
 

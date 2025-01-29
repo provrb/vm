@@ -98,7 +98,6 @@ Opcode OpcodeFromKeyword(char* keyword) {
 
 int LabelIndex(Lexer* lexer, char* name) {
     for (int i = 0; i < lexer->numLabels; i++) {
-        printf("Label: %s\n", lexer->labels[i].name);
         if (strcmp(lexer->labels[i].name, name) == 0) {
             return lexer->labels[i].index;
         }
@@ -375,8 +374,6 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
             SyntaxError(lexer, buff);
         }
 
-        printf("mov, add, sub register: '%s'\n", reg);
-
         return reg;
     }
 
@@ -387,16 +384,14 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
         char* labelName = malloc(MAX_LABEL_LEN * sizeof(char));
         int labelNameIndex = 0;
 
-        while (lexer->text[lexer->charIndex] != LXR_LABEL_END &&
-               lexer->text[lexer->charIndex] != '\0' && lexer->text[lexer->charIndex] != '\n') {
-            printf("Index %d, charIndex %d, char %c\n", labelNameIndex, lexer->charIndex,
-                   lexer->text[lexer->charIndex]);
+        while (!isspace(lexer->text[lexer->charIndex]) && lexer->text[lexer->charIndex] != '\0' &&
+               lexer->text[lexer->charIndex] != LXR_LABEL_END &&
+               lexer->text[lexer->charIndex] != '\n') {
             labelName[labelNameIndex] = lexer->text[lexer->charIndex];
             labelNameIndex++;
             lexer->charIndex++;
         }
-        labelName[labelNameIndex - 1] = '\0';
-        printf("Label name for instruction: %s\n", labelName);
+        labelName[labelNameIndex] = '\0';
         return labelName;
     }
 
@@ -490,7 +485,6 @@ void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
             return;
         }
 
-        printf("reg is %s\n", operand);
         Register reg = GetRegisterFromName(operand);
         if (reg == REG_UNKNOWN)
             SyntaxError(lexer, "invalid register");
@@ -516,7 +510,6 @@ void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
             operand[0] == LXR_CONSTANT_PREFIX) {
             operands[0].data.ptr = operand;
             operands[0].type = TY_STR;
-            printf("operand : %s\n", operand);
             CheckOperandSyntax(lexer, opcode, operand);
             continue;
         }
@@ -529,7 +522,7 @@ void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
                 CheckOperandSyntax(lexer, opcode, operand);
                 return;
             }
-            printf("Operand: '%s'\n", operand);
+            printf("jump label '%s'\n", operand);
             SyntaxError(lexer,
                         "unknown jump label. (implicit declaration not supported currently)");
         }
@@ -678,8 +671,6 @@ Lexer ParseTokens(char* path) {
                 keyword[index++] = lexer.text[lexer.charIndex++];
 
                 if (OpcodeFromKeyword(keyword) != OP_UNKNOWN) {
-                    printf("valid keyword. '%s' extra character. '%c'.\n", keyword,
-                           lexer.text[lexer.charIndex]);
                     if (isalpha(lexer.text[lexer.charIndex]) ||
                         isdigit(lexer.text[lexer.charIndex])) {
                         continue;
@@ -700,8 +691,6 @@ Lexer ParseTokens(char* path) {
             keyword[index] = '\0';
             lexer.state = PARSE;
         }
-
-        printf("Keyword %s\n", keyword);
 
         // get opcode from keyword as an Opcode enum
         Opcode opcode = OpcodeFromKeyword(keyword);

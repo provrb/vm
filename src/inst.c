@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef USING_ARDUINO
 static const RegisterMap registerMap[] = {
     {"rax", REG_RAX}, {"rbx", REG_RBX}, {"rcx", REG_RCX}, {"rdx", REG_RDX}, {"r8", REG_R8},
     {"r9", REG_R9},   {"r10", REG_R10}, {"r11", REG_R11}, {"r12", REG_R12}, {"r13", REG_R13},
@@ -26,82 +25,6 @@ Register GetRegisterFromName(const char* name) {
 
     return REG_UNKNOWN;
 }
-
-#elif defined(USING_ARDUINO)
-
-Register GetRegisterFromName(const char* keyword) {
-    if (strcmp(keyword, "rax") == 0)
-        return REG_RAX;
-    else if (strcmp(keyword, "rbx") == 0)
-        return REG_RBX;
-    else if (strcmp(keyword, "rcx") == 0)
-        return REG_RCX;
-    else if (strcmp(keyword, "rdx") == 0)
-        return REG_RDX;
-    else if (strcmp(keyword, "r8") == 0)
-        return REG_R8;
-    else if (strcmp(keyword, "r9") == 0)
-        return REG_R9;
-    else if (strcmp(keyword, "r10") == 0)
-        return REG_R10;
-    else if (strcmp(keyword, "r11") == 0)
-        return REG_R11;
-    else if (strcmp(keyword, "r12") == 0)
-        return REG_R12;
-    else if (strcmp(keyword, "r13") == 0)
-        return REG_R13;
-    else if (strcmp(keyword, "r14") == 0)
-        return REG_R14;
-    else if (strcmp(keyword, "r15") == 0)
-        return REG_R15;
-    else if (strcmp(keyword, "ep") == 0)
-        return REG_EP;
-    else if (strcmp(keyword, "cp") == 0)
-        return REG_CP;
-    else if (strcmp(keyword, "none") == 0)
-        return REG_UNKNOWN;
-    else
-        return REG_UNKNOWN;
-}
-
-const char* GetRegisterName(Register reg) {
-    switch (reg) {
-    case REG_RAX:
-        return "rax";
-    case REG_RBX:
-        return "rbx";
-    case REG_RCX:
-        return "rcx";
-    case REG_RDX:
-        return "rdx";
-    case REG_R8:
-        return "r8";
-    case REG_R9:
-        return "r9";
-    case REG_R10:
-        return "r10";
-    case REG_R11:
-        return "r11";
-    case REG_R12:
-        return "r12";
-    case REG_R13:
-        return "r13";
-    case REG_R14:
-        return "r14";
-    case REG_R15:
-        return "r15";
-    case REG_EP:
-        return "ep";
-    case REG_CP:
-        return "cp";
-    case REG_UNKNOWN:
-        return "unknown";
-    default:
-        return "none";
-    }
-}
-
-#endif
 
 Data DATA_USING_I64(long val) {
     Data d = {.data.i64 = val, .type = TY_I64};
@@ -143,7 +66,6 @@ void Move(Machine* machine, Operand data, int dest) {
     }
 
     if (strcmp(GetRegisterName(data.data.i64), "unknown") == 0) {
-        printf("Not a source register. Taking as a constant %s\n", (char*)data.data.ptr);
         RemoveChar((char*)data.data.ptr, LXR_CONSTANT_PREFIX);
         machine->memory[dest] = DATA_USING_I64(atol((char*)data.data.ptr));
         return;
@@ -220,8 +142,6 @@ void DumpProgramToFile(Machine* machine, char* filePath) {
 }
 
 void PrintRegisterContents(Machine* machine) {
-    printf("Memory Layout\n");
-
     for (int i = REG_RAX; i < REG_R15 + 1; i++) {
         Data data = machine->memory[i];
         printf("%-4s: ", GetRegisterName(i));

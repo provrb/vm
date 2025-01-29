@@ -1,5 +1,4 @@
 _exit:
-    push rax
     print
     mov $0, rax
     exit
@@ -12,22 +11,3 @@ _loop:
     cmp $5, rax
     jg _exit
     jle _loop
-
-void print() {
-    // print stack
-}
-
-int main() {
-    int rax = 0;
-
-    while (rax <= 5) {
-        rax += 1;
-
-        if (rax > 5) {
-            print();
-            return 0;
-        }
-    }
-
-    return 0;
-}
