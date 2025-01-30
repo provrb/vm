@@ -11,33 +11,6 @@
 
 #include <stdint.h>
 
-/// Compare last two values in stack based off operator
-/// if the expression evaluates to true, jump to 'addr' and set res to TRUE
-///
-/// @param operator - logical operator (>=, ==, <=, <, >)
-/// @param machine: Machine* - machine containing a stack
-/// @param addr: int -  index to jump to if expression is true
-/// @param res: int* - int* to receive the result of expression
-#define JUMP_IF(operator, machine, addr, res)                                                      \
-    {                                                                                              \
-        *res = FALSE;                                                                              \
-                                                                                                   \
-        if (machine->stackSize - 2 < 0) {                                                          \
-            fprintf(stderr, "Not enough values on stack for comparison.\n");                       \
-            exit(1);                                                                               \
-        }                                                                                          \
-                                                                                                   \
-        const Data a = machine->stack[machine->stackSize - 2];                                     \
-        const Data b = machine->stack[machine->stackSize - 1];                                     \
-                                                                                                   \
-        if ((a.type == TY_U64 || a.type == TY_I64) && (b.type == TY_U64 || b.type == TY_I64)) {    \
-            if ((a.data.i64) operator(b.data.i64)) {                                               \
-                JumpTo(machine, addr);                                                             \
-                *res = TRUE;                                                                       \
-            }                                                                                      \
-        }                                                                                          \
-    }
-
 typedef enum { PORT_B, PORT_C, PORT_D } ArduinoPort;
 
 // General purpose register indexes
