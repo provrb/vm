@@ -26,6 +26,11 @@ Register GetRegisterFromName(const char* name) {
     return REG_UNKNOWN;
 }
 
+Data DATA_USING_F64(double val) {
+    Data d = {.data.f64 = val, .type = TY_F64};
+    return d;
+}
+
 Data DATA_USING_I64(long val) {
     Data d = {.data.i64 = val, .type = TY_I64};
     return d;
@@ -41,11 +46,6 @@ Data DATA_USING_STR(char* val) {
     return d;
 }
 
-Data DATA_USING_PTR(void* val) {
-    Data d = {.data.ptr = val, .type = TY_ANY};
-    return d;
-}
-
 void RemoveChar(char* str, char toRemove) {
     int i, j = 0;
     int length = strlen(str);
@@ -58,6 +58,20 @@ void RemoveChar(char* str, char toRemove) {
     str[j] = '\0';
 }
 
+// https://stackoverflow.com/a/1997606
+BOOL IsFloat(const char* s) {
+    char* ep = NULL;
+    long i = strtol(s, &ep, 10);
+
+    if (!*ep)
+        return FALSE;
+
+    if (*ep == 'e' || *ep == 'E' || *ep == '.')
+        return TRUE;
+
+    return FALSE;
+}
+
 void Move(Machine* machine, Operand data, int dest) {
     const char* regDest = GetRegisterName(dest);
     if (strcmp(regDest, "unknown") == 0) {
@@ -67,7 +81,13 @@ void Move(Machine* machine, Operand data, int dest) {
 
     if (strcmp(GetRegisterName(data.data.i64), "unknown") == 0) {
         RemoveChar((char*)data.data.ptr, LXR_CONSTANT_PREFIX);
-        machine->memory[dest] = DATA_USING_I64(atol((char*)data.data.ptr));
+        if (IsFloat((char*)data.data.ptr) == TRUE) {
+            char* endptr;
+            double f = strtod((char*)data.data.ptr, &endptr);
+            machine->memory[dest] = DATA_USING_F64(f);
+        } else
+            machine->memory[dest] = DATA_USING_I64(atol((char*)data.data.ptr));
+
         return;
     }
 
@@ -147,6 +167,9 @@ void PrintRegisterContents(Machine* machine) {
         printf("%-4s: ", GetRegisterName(i));
 
         switch (data.type) {
+        case TY_F64:
+            printf("%f (f64)", data.data.f64);
+            break;
         case TY_STR:
             printf("\"%2s\"", (char*)data.data.ptr);
             break;
@@ -617,16 +640,50 @@ void RunInstructions(Machine* machine) {
         break;
     }
     case OP_ADD: {
-        long a = 0;
+        long a = -1;
+        double af = -1; // a float
+
         // constant value
         if (strcmp(GetRegisterName(inst.data.value.data.i64), "unknown") == 0) {
             RemoveChar((char*)inst.data.value.data.ptr, LXR_CONSTANT_PREFIX);
-            a = atol((char*)inst.data.value.data.ptr);
-        } else
-            a = machine->memory[inst.data.value.data.i64].data.i64;
+            printf("inst data value %s\n", (char*)inst.data.value.data.ptr);
+            if (IsFloat((char*)inst.data.value.data.ptr) == TRUE) {
+                inst.data.value.type = TY_F64;
+            } else
+                inst.data.value.type = TY_I64;
 
-        long b = machine->memory[inst.data.registers.dest].data.i64;
-        machine->memory[inst.data.registers.dest] = DATA_USING_I64(a + b);
+            if (inst.data.value.type == TY_I64)
+                a = atol((char*)inst.data.value.data.ptr);
+            else if (inst.data.value.type == TY_F64) {
+                printf("isfloat\n");
+                char* endptr;
+                af = strtod((char*)inst.data.value.data.ptr, &endptr);
+            }
+            printf("a: %d, af: %f\n", a, af);
+        } else {
+            if (machine->memory[inst.data.value.data.i64].type == TY_I64)
+                a = machine->memory[inst.data.value.data.i64].data.i64;
+            else if (machine->memory[inst.data.value.data.i64].type == TY_F64)
+                a = machine->memory[inst.data.value.data.i64].data.f64;
+        }
+
+        Data operand2 = machine->memory[inst.data.registers.dest];
+
+        if (operand2.type == TY_I64) {
+            long b = operand2.data.i64;
+            if (a == -1 && af != -1) // a is a float
+                machine->memory[inst.data.registers.dest] = DATA_USING_F64(af + b);
+            else if (a != -1 && af == -1) // a is not a float
+                machine->memory[inst.data.registers.dest] = DATA_USING_I64(a + b);
+        } else if (operand2.type == TY_F64) {
+            double b = operand2.data.f64;
+            printf("floating point addition: a: %d, af: %f, b: %f\n", a, af, b);
+            if (a == -1 && af != -1) // a is a float
+                machine->memory[inst.data.registers.dest] = DATA_USING_F64(af + b);
+            else if (a != -1 && af == -1) // a is not a float
+                machine->memory[inst.data.registers.dest] = DATA_USING_F64(a + b);
+        }
+
         break;
     }
     case OP_DIV: {

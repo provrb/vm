@@ -1,13 +1,3 @@
-_exit:
-    print
-    mov $0, rax
-    exit
-
 _start:
-    mov $0, rax
-
-_loop:
-    add $1, rax; add 1 to rax
-    cmp $5, rax
-    jg _exit
-    jle _loop
+    mov $5, rax
+    add $5, rax

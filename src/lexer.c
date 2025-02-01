@@ -347,7 +347,17 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
         operand[operandIndex++] = LXR_CONSTANT_PREFIX;
 
         lexer->charIndex++;
-        while (isdigit(lexer->text[lexer->charIndex])) {
+        BOOL dotFound = FALSE;
+        while (isdigit(lexer->text[lexer->charIndex]) ||
+               (dotFound == FALSE && (!isdigit(lexer->text[lexer->charIndex]) &&
+                                      lexer->text[lexer->charIndex] == LXR_FLOAT &&
+                                      lexer->text[lexer->charIndex - 1] != LXR_FLOAT &&
+                                      lexer->text[lexer->charIndex + 1] != LXR_FLOAT))) {
+            if (!isdigit(lexer->text[lexer->charIndex]) &&
+                lexer->text[lexer->charIndex] == LXR_FLOAT) {
+                if (dotFound == FALSE)
+                    dotFound = TRUE;
+            }
             operand[operandIndex] = lexer->text[lexer->charIndex];
             operandIndex++;
             lexer->charIndex++;

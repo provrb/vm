@@ -87,6 +87,7 @@
 #define LABEL_ENTRY_PNT "start"
 #define LXR_CONSTANT_PREFIX '$'
 #define LXR_ESCAPE_CHAR '\\'
+#define LXR_FLOAT '.'
 
 /// Flag operatons
 #define FLAG_SF (1 << 0)

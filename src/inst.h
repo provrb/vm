@@ -95,6 +95,7 @@ typedef enum {
     TY_EMPTY,
     TY_U64,
     TY_I64,
+    TY_F64,
     TY_BYTE,
     TY_STR,
     TY_REG_NAME,
@@ -111,6 +112,7 @@ typedef enum {
 typedef union {
     unsigned long u64;
     long i64;
+    double f64;
     char byte;
     void* ptr;
 } DataCell;
@@ -170,10 +172,10 @@ typedef struct {
 } Machine;
 
 // Create Data structures using different available types
+Data DATA_USING_F64(double val);
 Data DATA_USING_I64(long val);
 Data DATA_USING_U64(unsigned long val);
 Data DATA_USING_STR(char* val);
-Data DATA_USING_PTR(void* val);
 
 #ifdef USING_ARDUINO
 /// @brief Get the port for a pin

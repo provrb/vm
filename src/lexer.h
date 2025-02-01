@@ -153,4 +153,6 @@ int LabelIndex(Lexer* lexer, char* name);
 /// @param token - token to print information about
 void PrintToken(Token* token);
 
+BOOL IsFloat(const char* s);
+
 #endif
