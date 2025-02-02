@@ -11,6 +11,35 @@
 
 #include <stdint.h>
 
+#define ARITHMETIC(operator, inst, machine, op)                                                    \
+    long a = -1;                                                                                   \
+    double af = -1;                                                                                \
+    BOOL fp = FALSE;                                                                               \
+                                                                                                   \
+    if (!strcmp(GetRegisterName(inst.data.value.data.i64), "unknown")) {                           \
+        RemoveChar((char*)inst.data.value.data.ptr, LXR_CONSTANT_PREFIX);                          \
+        inst.data.value.type = IsFloat((char*)inst.data.value.data.ptr) ? TY_F64 : TY_I64;         \
+                                                                                                   \
+        if (inst.data.value.type == TY_F64)                                                        \
+            fp = TRUE;                                                                             \
+        else                                                                                       \
+            fp = FALSE;                                                                            \
+        if (fp == TRUE)                                                                            \
+            a = atol((char*)inst.data.value.data.ptr);                                             \
+        else                                                                                       \
+            af = strtod((char*)inst.data.value.data.ptr, NULL);                                    \
+        if ((op == '/' || op == '%') && (a == 0 || af == 0))                                       \
+            RuntimeError("divide by zero error.");                                                 \
+    }                                                                                              \
+                                                                                                   \
+    Data* dest = &machine->memory[inst.data.registers.dest];                                       \
+    if (dest->type == TY_I64)                                                                      \
+        *dest = (fp == FALSE) ? DATA_USING_I64(dest->data.i64 operator a)                          \
+                              : DATA_USING_F64(dest->data.i64 operator af);                        \
+    else                                                                                           \
+        *dest = DATA_USING_F64((fp == TRUE) ? (dest->data.f64 operator a)                          \
+                                            : (dest->data.f64 operator af));
+
 typedef enum { PORT_B, PORT_C, PORT_D } ArduinoPort;
 
 // General purpose register indexes

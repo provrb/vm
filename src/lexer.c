@@ -161,8 +161,11 @@ int OperandsExpected(Opcode op) {
     // operations that require 2 opands
     case OP_SUB:
     case OP_ADD:
+    case OP_MUL:
+    case OP_MOD:
     case OP_MOV:
     case OP_CMP:
+    case OP_DIV:
         return 2;
 
     // operations that require 1 operand
@@ -259,8 +262,7 @@ Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer)
 
     switch (OperandsExpected(operation)) {
     case 2:
-        if (operation == OP_MOV || operation == OP_SUB || operation == OP_ADD ||
-            operation == OP_CMP) {
+        if (operation == OP_MOV || IsArithneticOpcode(operation) == TRUE || operation == OP_CMP) {
             if (operands[0].type == TY_STR &&
                 ((char*)operands[0].data.ptr)[0] == LXR_CONSTANT_PREFIX) {
                 i.data.value.data.ptr = operands[0].data.ptr;
@@ -272,7 +274,7 @@ Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer)
             }
         }
 
-        if ((operation != OP_MOV || operation != OP_SUB || operation != OP_ADD ||
+        if ((operation != OP_MOV || IsArithneticOpcode(operation) == FALSE ||
              operation != OP_CMP) &&
             (operands[0].type != TY_I64 || operands[1].type != TY_I64))
             TypeError(lexer, "expected I64 operand");
@@ -325,6 +327,18 @@ Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer)
 
 void PrintToken(Token* token) { printf("%06d: %s\n", token->line, token->text); }
 
+BOOL IsArithneticOpcode(Opcode opcode) {
+    switch (opcode) {
+    case OP_ADD:
+    case OP_DIV:
+    case OP_SUB:
+    case OP_MUL:
+    case OP_MOD:
+        return TRUE;
+    }
+    return FALSE;
+}
+
 char* ParseOperand(Lexer* lexer, Opcode opcode) {
     if (opcode == OP_SHL || opcode == OP_SHR) {
         char* operand = malloc(MAX_OPERAND_LEN * sizeof(char));
@@ -341,7 +355,7 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
     }
 
     if (lexer->text[lexer->charIndex] == LXR_CONSTANT_PREFIX &&
-        (opcode == OP_CMP || opcode == OP_MOV || opcode == OP_ADD || opcode == OP_SUB)) {
+        (opcode == OP_CMP || opcode == OP_MOV || IsArithneticOpcode(opcode) == TRUE)) {
         char* operand = malloc(MAX_OPERAND_LEN * sizeof(char));
         int operandIndex = 0;
         operand[operandIndex++] = LXR_CONSTANT_PREFIX;
@@ -370,7 +384,7 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
 
         operand[operandIndex] = '\0';
         return operand;
-    } else if (opcode == OP_MOV || opcode == OP_ADD || opcode == OP_SUB || opcode == OP_CMP) {
+    } else if (opcode == OP_MOV || IsArithneticOpcode(opcode) == TRUE || opcode == OP_CMP) {
         char* reg = malloc(12 * sizeof(char));
         int regStrIndex = 0;
         while (isdigit(lexer->text[lexer->charIndex]) || isalpha(lexer->text[lexer->charIndex])) {
@@ -516,7 +530,7 @@ void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
         if (operand == NULL)
             SyntaxError(lexer, "missing operand");
 
-        if ((opcode == OP_CMP || opcode == OP_MOV || opcode == OP_ADD || opcode == OP_SUB) &&
+        if ((opcode == OP_CMP || opcode == OP_MOV || IsArithneticOpcode(opcode) == TRUE) &&
             operand[0] == LXR_CONSTANT_PREFIX) {
             operands[0].data.ptr = operand;
             operands[0].type = TY_STR;
