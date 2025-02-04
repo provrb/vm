@@ -88,6 +88,7 @@
 #define LXR_CONSTANT_PREFIX '$'
 #define LXR_ESCAPE_CHAR '\\'
 #define LXR_FLOAT '.'
+#define LXR_SIGNED_INT '-'
 
 /// Flag operatons
 #define FLAG_SF (1 << 0)

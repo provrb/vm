@@ -24,7 +24,7 @@
             fp = TRUE;                                                                             \
         else                                                                                       \
             fp = FALSE;                                                                            \
-        if (fp == TRUE)                                                                            \
+        if (fp == FALSE)                                                                           \
             a = atol((char*)inst.data.value.data.ptr);                                             \
         else                                                                                       \
             af = strtod((char*)inst.data.value.data.ptr, NULL);                                    \
@@ -33,12 +33,13 @@
     }                                                                                              \
                                                                                                    \
     Data* dest = &machine->memory[inst.data.registers.dest];                                       \
+    printf("a: %d af: %f, dest: %d\n", a, af, dest->data.i64);                                     \
     if (dest->type == TY_I64)                                                                      \
         *dest = (fp == FALSE) ? DATA_USING_I64(dest->data.i64 operator a)                          \
                               : DATA_USING_F64(dest->data.i64 operator af);                        \
     else                                                                                           \
-        *dest = DATA_USING_F64((fp == TRUE) ? (dest->data.f64 operator a)                          \
-                                            : (dest->data.f64 operator af));
+        *dest = DATA_USING_F64((fp == FALSE) ? (dest->data.f64 operator a)                         \
+                                             : (dest->data.f64 operator af));
 
 typedef enum { PORT_B, PORT_C, PORT_D } ArduinoPort;
 

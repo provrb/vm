@@ -63,11 +63,15 @@ BOOL IsFloat(const char* s) {
     char* ep = NULL;
     long i = strtol(s, &ep, 10);
 
-    if (!*ep)
+    if (!*ep) {
+        printf("not float %s, %d\n", s, i);
         return FALSE;
+    }
 
-    if (*ep == 'e' || *ep == 'E' || *ep == '.')
+    if (*ep == 'e' || *ep == 'E' || *ep == '.') {
+        printf("float\n");
         return TRUE;
+    }
 
     return FALSE;
 }

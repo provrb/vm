@@ -362,16 +362,26 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
 
         lexer->charIndex++;
         BOOL dotFound = FALSE;
+        BOOL isSigned = FALSE;
+
         while (isdigit(lexer->text[lexer->charIndex]) ||
+               (isSigned == FALSE && (!isdigit(lexer->text[lexer->charIndex]) &&
+                                      lexer->text[lexer->charIndex] == LXR_SIGNED_INT)) ||
                (dotFound == FALSE && (!isdigit(lexer->text[lexer->charIndex]) &&
                                       lexer->text[lexer->charIndex] == LXR_FLOAT &&
                                       lexer->text[lexer->charIndex - 1] != LXR_FLOAT &&
                                       lexer->text[lexer->charIndex + 1] != LXR_FLOAT))) {
+
             if (!isdigit(lexer->text[lexer->charIndex]) &&
                 lexer->text[lexer->charIndex] == LXR_FLOAT) {
                 if (dotFound == FALSE)
                     dotFound = TRUE;
+            } else if (!isdigit(lexer->text[lexer->charIndex]) &&
+                       lexer->text[lexer->charIndex] == LXR_SIGNED_INT) {
+                if (isSigned == FALSE)
+                    isSigned = TRUE;
             }
+
             operand[operandIndex] = lexer->text[lexer->charIndex];
             operandIndex++;
             lexer->charIndex++;
@@ -495,13 +505,11 @@ void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
     if (opcode == OP_POP || opcode == OP_PUSH) {
         // check if theres an operand
         char* operand = ParseOperand(lexer, opcode);
-        if (operand == NULL) {
+        if (operand == NULL)
             return; // no operand for pop, we're just deleted it
-        }
 
-        if (strlen(operand) == 0) {
+        if (strlen(operand) == 0)
             return;
-        }
 
         if (opcode == OP_PUSH && (isdigit(operand[0]) || operand[0] == LXR_STR_CHAR)) {
             ToOperandType(operands, 0, operand);
@@ -546,7 +554,6 @@ void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
                 CheckOperandSyntax(lexer, opcode, operand);
                 return;
             }
-            printf("jump label '%s'\n", operand);
             SyntaxError(lexer,
                         "unknown jump label. (implicit declaration not supported currently)");
         }
