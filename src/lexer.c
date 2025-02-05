@@ -347,6 +347,50 @@ BOOL IsArithneticOpcode(Opcode opcode) {
     return FALSE;
 }
 
+char* ParseNumber(Lexer* lexer, Opcode opcode) {
+    char* operand = malloc(MAX_OPERAND_LEN * sizeof(char));
+    int operandIndex = 0;
+
+    if (lexer->text[lexer->charIndex] == LXR_CONSTANT_PREFIX &&
+        (opcode == OP_CMP || opcode == OP_MOV || IsArithneticOpcode(opcode) == TRUE)) {
+        operand[operandIndex++] = LXR_CONSTANT_PREFIX;
+        lexer->charIndex++;
+    }
+
+    BOOL dotFound = FALSE;
+    BOOL isSigned = FALSE;
+
+    while (isdigit(lexer->text[lexer->charIndex]) ||
+           (isSigned == FALSE && (!isdigit(lexer->text[lexer->charIndex]) &&
+                                  lexer->text[lexer->charIndex] == LXR_SIGNED_INT)) ||
+           (dotFound == FALSE && (!isdigit(lexer->text[lexer->charIndex]) &&
+                                  lexer->text[lexer->charIndex] == LXR_FLOAT &&
+                                  lexer->text[lexer->charIndex - 1] != LXR_FLOAT &&
+                                  lexer->text[lexer->charIndex + 1] != LXR_FLOAT))) {
+
+        if (!isdigit(lexer->text[lexer->charIndex]) && lexer->text[lexer->charIndex] == LXR_FLOAT) {
+            if (dotFound == FALSE)
+                dotFound = TRUE;
+        } else if (!isdigit(lexer->text[lexer->charIndex]) &&
+                   lexer->text[lexer->charIndex] == LXR_SIGNED_INT) {
+            if (isSigned == FALSE)
+                isSigned = TRUE;
+        }
+
+        operand[operandIndex] = lexer->text[lexer->charIndex];
+        operandIndex++;
+        lexer->charIndex++;
+    }
+
+    if (lexer->text[lexer->charIndex] == LXR_OPRND_BRK) {
+        lexer->charIndex++;
+        SkipSpaces(lexer);
+    }
+
+    operand[operandIndex] = '\0';
+    return operand;
+}
+
 char* ParseOperand(Lexer* lexer, Opcode opcode) {
     if (opcode == OP_SHL || opcode == OP_SHR) {
         char* operand = malloc(MAX_OPERAND_LEN * sizeof(char));
@@ -363,46 +407,10 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
     }
 
     if (lexer->text[lexer->charIndex] == LXR_CONSTANT_PREFIX &&
-        (opcode == OP_CMP || opcode == OP_MOV || IsArithneticOpcode(opcode) == TRUE)) {
-        char* operand = malloc(MAX_OPERAND_LEN * sizeof(char));
-        int operandIndex = 0;
-        operand[operandIndex++] = LXR_CONSTANT_PREFIX;
+        (opcode == OP_CMP || opcode == OP_MOV || IsArithneticOpcode(opcode) == TRUE))
+        return ParseNumber(lexer, opcode);
 
-        lexer->charIndex++;
-        BOOL dotFound = FALSE;
-        BOOL isSigned = FALSE;
-
-        while (isdigit(lexer->text[lexer->charIndex]) ||
-               (isSigned == FALSE && (!isdigit(lexer->text[lexer->charIndex]) &&
-                                      lexer->text[lexer->charIndex] == LXR_SIGNED_INT)) ||
-               (dotFound == FALSE && (!isdigit(lexer->text[lexer->charIndex]) &&
-                                      lexer->text[lexer->charIndex] == LXR_FLOAT &&
-                                      lexer->text[lexer->charIndex - 1] != LXR_FLOAT &&
-                                      lexer->text[lexer->charIndex + 1] != LXR_FLOAT))) {
-
-            if (!isdigit(lexer->text[lexer->charIndex]) &&
-                lexer->text[lexer->charIndex] == LXR_FLOAT) {
-                if (dotFound == FALSE)
-                    dotFound = TRUE;
-            } else if (!isdigit(lexer->text[lexer->charIndex]) &&
-                       lexer->text[lexer->charIndex] == LXR_SIGNED_INT) {
-                if (isSigned == FALSE)
-                    isSigned = TRUE;
-            }
-
-            operand[operandIndex] = lexer->text[lexer->charIndex];
-            operandIndex++;
-            lexer->charIndex++;
-        }
-
-        if (lexer->text[lexer->charIndex] == LXR_OPRND_BRK) {
-            lexer->charIndex++;
-            SkipSpaces(lexer);
-        }
-
-        operand[operandIndex] = '\0';
-        return operand;
-    } else if (opcode == OP_MOV || IsArithneticOpcode(opcode) == TRUE || opcode == OP_CMP) {
+    if (opcode == OP_MOV || IsArithneticOpcode(opcode) == TRUE || opcode == OP_CMP) {
         char* reg = malloc(12 * sizeof(char));
         int regStrIndex = 0;
         while (isdigit(lexer->text[lexer->charIndex]) || isalpha(lexer->text[lexer->charIndex])) {
@@ -417,11 +425,9 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
         }
 
         return reg;
-    }
-
-    if (lexer->text[lexer->charIndex] == LXR_LABEL_START &&
-        (opcode == OP_CALL || opcode == OP_JMP || opcode == OP_JE || opcode == OP_JG ||
-         opcode == OP_JGE || opcode == OP_JL || opcode == OP_JLE || opcode == OP_JNE)) {
+    } else if (lexer->text[lexer->charIndex] == LXR_LABEL_START &&
+               (opcode == OP_CALL || opcode == OP_JMP || opcode == OP_JE || opcode == OP_JG ||
+                opcode == OP_JGE || opcode == OP_JL || opcode == OP_JLE || opcode == OP_JNE)) {
         lexer->charIndex++;
         char* labelName = malloc(MAX_LABEL_LEN * sizeof(char));
         int labelNameIndex = 0;

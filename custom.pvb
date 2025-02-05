@@ -1,4 +1,5 @@
 _start:
-    push -3.3
-    pop rax
+    mov $-3.3, rax
+    push -4.3
+    pop rbx
     print
