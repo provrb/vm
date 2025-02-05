@@ -63,15 +63,11 @@ BOOL IsFloat(const char* s) {
     char* ep = NULL;
     long i = strtol(s, &ep, 10);
 
-    if (!*ep) {
-        printf("not float %s, %d\n", s, i);
+    if (!*ep)
         return FALSE;
-    }
 
-    if (*ep == 'e' || *ep == 'E' || *ep == '.') {
-        printf("float\n");
+    if (*ep == 'e' || *ep == 'E' || *ep == '.')
         return TRUE;
-    }
 
     return FALSE;
 }
@@ -103,8 +99,16 @@ void Push(Machine* machine, Data value) {
         fprintf(stderr, "Stack overflow when trying to push value to stack. Aborted.\n");
         exit(1);
     }
-
     machine->stack[machine->stackSize++] = value;
+}
+
+Data PopData(Machine* machine) {
+    if (machine->stackSize <= 0) {
+        fprintf(stderr, "Stack underflow when trying to pop from stack. Aborted.\n");
+        exit(1);
+    }
+
+    return machine->stack[--machine->stackSize];
 }
 
 int Pop(Machine* machine) {
@@ -112,7 +116,6 @@ int Pop(Machine* machine) {
         fprintf(stderr, "Stack underflow when trying to pop from stack. Aborted.\n");
         exit(1);
     }
-
     return machine->stack[--machine->stackSize].data.i64;
 }
 
@@ -135,6 +138,9 @@ void PrintStack(Machine* machine) {
             printf("%s\n", (char*)x.data.ptr);
         else if (x.type == TY_I64 || x.type == TY_U64)
             printf("%ld\n", machine->stack[i].data.i64);
+        else if (x.type == TY_F64) {
+            printf("%f\n", machine->stack[i].data.f64);
+        }
     }
     printf("--- Stack End   ---\n");
 }
@@ -494,11 +500,14 @@ void RunInstructions(Machine* machine) {
         Push(machine, inst.data.value);
         break;
     case OP_POP: {
-        int val = Pop(machine);
+        Data val = PopData(machine);
 
         // pop to memory
-        if (inst.data.registers.dest != REG_NONE)
-            machine->memory[inst.data.registers.dest] = DATA_USING_I64(val);
+        if (inst.data.registers.dest == REG_NONE)
+            break;
+
+        machine->memory[inst.data.registers.dest] =
+            (val.type == TY_F64) ? DATA_USING_F64(val.data.f64) : DATA_USING_I64(val.data.i64);
 
         break;
     }
@@ -514,7 +523,6 @@ void RunInstructions(Machine* machine) {
         Push(machine, DATA_USING_I64(a | b));
         break;
     }
-#ifndef USING_ARDUINO
     case OP_PRNT:
         PrintStack(machine);
         break;
@@ -666,7 +674,6 @@ void RunInstructions(Machine* machine) {
     case OP_SIZE:
         Push(machine, DATA_USING_I64(machine->stackSize));
         break;
-#endif
     default:
         RuntimeError("\n\tIn 'RunInstructions()' : unknown instruction");
     }

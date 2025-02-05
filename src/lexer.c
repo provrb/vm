@@ -237,6 +237,14 @@ void ToOperandType(Operand* operands, int index, char* operand) {
         return;
     }
 
+    if (IsFloat(operand) == TRUE) {
+        char* endptr;
+        double asFloat = strtod(operand, endptr);
+        operands[index].data.f64 = asFloat;
+        operands[index].type = TY_F64;
+        return;
+    }
+
     long asNumber = atol(operand);
 
     if (operand[0] == LXR_STR_CHAR && operand[strlen(operand) - 1] == LXR_STR_CHAR) {
@@ -470,7 +478,8 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
         return string;
     }
 
-    if (((opcode == OP_PUSH || opcode == OP_POP) && !isdigit(lexer->text[lexer->charIndex]))) {
+    if (((opcode == OP_PUSH || opcode == OP_POP) && !isdigit(lexer->text[lexer->charIndex]) &&
+         lexer->text[lexer->charIndex] != LXR_SIGNED_INT)) {
         char* reg = malloc(12 * sizeof(char));
         int regStrIndex = 0;
         while (!isblank(lexer->text[lexer->charIndex]) &&
@@ -485,8 +494,26 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
     int operandLen = 0;
     char* operand = malloc(sizeof(char) * 21);
 
-    // parse operand
-    while (isdigit(lexer->text[lexer->charIndex])) {
+    BOOL dotFound = FALSE;
+    BOOL isSigned = FALSE;
+
+    while (isdigit(lexer->text[lexer->charIndex]) ||
+           (isSigned == FALSE && (!isdigit(lexer->text[lexer->charIndex]) &&
+                                  lexer->text[lexer->charIndex] == LXR_SIGNED_INT)) ||
+           (dotFound == FALSE && (!isdigit(lexer->text[lexer->charIndex]) &&
+                                  lexer->text[lexer->charIndex] == LXR_FLOAT &&
+                                  lexer->text[lexer->charIndex - 1] != LXR_FLOAT &&
+                                  lexer->text[lexer->charIndex + 1] != LXR_FLOAT))) {
+
+        if (!isdigit(lexer->text[lexer->charIndex]) && lexer->text[lexer->charIndex] == LXR_FLOAT) {
+            if (dotFound == FALSE)
+                dotFound = TRUE;
+        } else if (!isdigit(lexer->text[lexer->charIndex]) &&
+                   lexer->text[lexer->charIndex] == LXR_SIGNED_INT) {
+            if (isSigned == FALSE)
+                isSigned = TRUE;
+        }
+
         operand[operandLen] = lexer->text[lexer->charIndex];
         operandLen++;
         lexer->charIndex++;
@@ -511,7 +538,8 @@ void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
         if (strlen(operand) == 0)
             return;
 
-        if (opcode == OP_PUSH && (isdigit(operand[0]) || operand[0] == LXR_STR_CHAR)) {
+        if (opcode == OP_PUSH &&
+            (isdigit(operand[0]) || operand[0] == LXR_STR_CHAR || operand[0] == LXR_SIGNED_INT)) {
             ToOperandType(operands, 0, operand);
             CheckOperandSyntax(lexer, opcode, operand);
             return;

@@ -16,7 +16,6 @@ int main(int argc, char** argv) {
     Instruction* insts = malloc(lexer.numTokens * sizeof(Instruction));
     for (unsigned int i = 0; i < lexer.numTokens; i++) {
         insts[i] = lexer.tokens[i].inst;
-        PrintToken(&lexer.tokens[i]);
     }
 
     Machine* machine = malloc(sizeof(Machine));
