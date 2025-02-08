@@ -1,5 +1,4 @@
 _start:
-    mov $-3.3, rax
-    push -4.3
-    pop rbx
-    print
+    mov $2, rax
+    mov $1000, rbx
+    syscall

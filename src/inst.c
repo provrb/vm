@@ -10,6 +10,19 @@ static const RegisterMap registerMap[] = {
     {"r9", REG_R9},   {"r10", REG_R10}, {"r11", REG_R11}, {"r12", REG_R12}, {"r13", REG_R13},
     {"r14", REG_R14}, {"r15", REG_R15}, {"ep", REG_EP},   {"cp", REG_CP},   {"none", REG_UNKNOWN}};
 
+static const Syscall syscalls[] = {
+    SYS_EXEC, SYS_ALLOC, SYS_FREE,   SYS_REALLOC, SYS_PROTECT,
+    SYS_ENV,  SYS_SLEEP, SYS_CYCLES, SYS_UNKNOWN,
+};
+
+BOOL ValidSyscall(unsigned int ssn) {
+    for (int i = 0; syscalls[i] != SYS_UNKNOWN; i++)
+        if (syscalls[i] == ssn)
+            return TRUE;
+
+    return FALSE;
+}
+
 const char* GetRegisterName(Register reg) {
     for (int i = 0; registerMap[i].reg != REG_UNKNOWN; i++)
         if (registerMap[i].reg == reg)
@@ -28,6 +41,11 @@ Register GetRegisterFromName(const char* name) {
 
 Data DATA_USING_F64(double val) {
     Data d = {.data.f64 = val, .type = TY_F64};
+    return d;
+}
+
+Data DATA_USING_PTR(void* ptr) {
+    Data d = {.data.ptr = ptr, .type = TY_ANY};
     return d;
 }
 
@@ -358,6 +376,8 @@ void OutputString(char* string, FileDescriptor fd) {
 }
 
 void RunInstructions(Machine* machine) {
+    machine->cycles++;
+
     if (machine->ip == 0 && machine->started == FALSE) {
         machine->ip = GetEntryPoint(machine);
         machine->started = TRUE;
@@ -577,15 +597,47 @@ void RunInstructions(Machine* machine) {
     case OP_SHR: {
         int val = Pop(machine);
         Push(machine, DATA_USING_I64(val >> inst.data.value.data.i64));
-        break;
-    }
+    } break;
     case OP_SWAP: {
         int first = Pop(machine);
         int second = Pop(machine);
         Push(machine, DATA_USING_I64(second));
         Push(machine, DATA_USING_I64(first));
-        break;
-    }
+    } break;
+    case OP_SYSCALL: {
+        // rax holds the ssn
+        Data ssn = machine->memory[REG_RAX];
+        if (ssn.type != TY_I64) {
+            Move(machine, DATA_USING_I64(-1), REG_RAX);
+            break;
+        }
+
+        // argument 1 for syscall
+        Data arg1 = machine->memory[REG_RBX];
+
+        switch (ssn.data.i64) {
+        case SYS_ALLOC:
+            if (arg1.data.i64 == 0 || arg1.type != TY_I64)
+                break;
+            Move(machine, DATA_USING_PTR(malloc(arg1.data.i64)), REG_RAX);
+            break;
+        case SYS_CYCLES:
+            Move(machine, DATA_USING_I64(machine->cycles), REG_RAX);
+            break;
+        case SYS_FREE:
+            free(arg1.data.i64);
+            break;
+        case SYS_REALLOC:
+            Move(machine, DATA_USING_PTR(realloc(arg1.data.i64, machine->memory[REG_RCX].data.i64)),
+                 REG_RAX);
+            break;
+        case SYS_SLEEP:
+            break;
+        default: // -1 return value
+            Move(machine, DATA_USING_I64(-1), REG_RAX);
+            break;
+        }
+    } break;
     case OP_MUL: {
         ARITHMETIC(*, inst, machine, '*')
         break;
@@ -597,25 +649,21 @@ void RunInstructions(Machine* machine) {
         int b = Pop(machine);
         int a = Pop(machine);
         Push(machine, DATA_USING_I64(a & b));
-        break;
-    }
+    } break;
     case OP_XORB: {
         int b = Pop(machine);
         int a = Pop(machine);
         Push(machine, DATA_USING_I64(a ^ b));
-        break;
-    }
+    } break;
     case OP_NOTB: {
         int a = Pop(machine);
         Push(machine, DATA_USING_I64(~a));
-        break;
-    }
+    } break;
     case OP_NEG: {
         int val = Pop(machine);
         val *= -1;
         Push(machine, DATA_USING_I64(val));
-        break;
-    }
+    } break;
     case OP_CMP: {
         machine->EFLAGS = 0;
 
@@ -647,27 +695,22 @@ void RunInstructions(Machine* machine) {
         else
             machine->EFLAGS &= ~FLAG_OF;
 
-        break;
-    }
+    } break;
     case OP_ADD: {
         ARITHMETIC(+, inst, machine, '+')
-        break;
-    }
+    } break;
     case OP_DIV: {
         ARITHMETIC(/, inst, machine, '/')
-        break;
-    }
+    } break;
     case OP_MOD: {
         ARITHMETIC(/, inst, machine, '%')
-        break;
-    }
+    } break;
     case OP_MOV:
         Move(machine, inst.data.value, inst.data.registers.dest);
         break;
     case OP_SUB: {
         ARITHMETIC(-, inst, machine, '-')
-        break;
-    }
+    } break;
     case OP_CLR:
         ClearStack(machine);
         break;

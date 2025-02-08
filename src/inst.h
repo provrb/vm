@@ -118,8 +118,22 @@ typedef enum {
     OP_READ,    // stdin or read pin for arduino
     OP_ANWRITE, // arduino only analog write
 
+    OP_SYSCALL,
+
     OP_EXIT,
 } Opcode;
+
+typedef enum {
+    SYS_EXEC = 1,
+    SYS_ALLOC,
+    SYS_FREE,
+    SYS_REALLOC,
+    SYS_PROTECT,
+    SYS_ENV,
+    SYS_SLEEP,
+    SYS_CYCLES,
+    SYS_UNKNOWN,
+} Syscall;
 
 typedef enum {
     TY_EMPTY,
@@ -180,25 +194,27 @@ typedef struct {
 } Label;
 
 typedef struct {
-    Data stack[STACK_CAPACITY], memory[MEMORY_CAPACITY];
-    uint32_t stackSize, memorySize;
+    // Arrays simulating cpu memory and a stack
+    Data stack[STACK_CAPACITY];
+    Data memory[MEMORY_CAPACITY];
+    Label labels[MAX_LABELS]; // labels parsed from the lexer
 
-    Label labels[MAX_LABELS];
-    uint32_t numLabels;
-
+    // Program
     Instruction* program;
-    uint32_t programSize;
 
-    uint32_t ip; // instruction
-    uint32_t rp; // return pointer. index to set ip to after we are finished in a label
+    uint32_t stackSize;
+    uint32_t memorySize;
+    uint32_t numLabels;
+    uint32_t programSize;
+    uint32_t cycles; // instructions ran
+    uint32_t ip;     // instruction
+    uint32_t rp;     // return pointer. index to set ip to after we are finished in a label
 
     // flags
     uint8_t EFLAGS;
-    uint8_t sf; // sign flag
-    uint8_t zf; // zero flag
-    uint8_t cf; // carry flag
 
-    BOOL started; // executed the first instruction
+    // has executed the first instruction
+    BOOL started;
 } Machine;
 
 // Create Data structures using different available types

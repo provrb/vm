@@ -5,18 +5,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef USING_ARDUINO
-
 static const OpcodeEntry opcodeTable[] = {
-    {"nop", OP_NOP},     {"push", OP_PUSH}, {"pop", OP_POP},      {"mov", OP_MOV},
-    {"swap", OP_SWAP},   {"jmp", OP_JMP},   {"ret", OP_RET},      {"jne", OP_JNE},
-    {"je", OP_JE},       {"jg", OP_JG},     {"call", OP_CALL},    {"jge", OP_JGE},
-    {"jl", OP_JL},       {"jle", OP_JLE},   {"add", OP_ADD},      {"sub", OP_SUB},
-    {"cmp", OP_CMP},     {"mul", OP_MUL},   {"div", OP_DIV},      {"mod", OP_MOD},
-    {"neg", OP_NEG},     {"AND", OP_ANDB},  {"OR", OP_ORB},       {"NOT", OP_NOTB},
-    {"XOR", OP_XORB},    {"shl", OP_SHL},   {"shr", OP_SHR},      {"dup", OP_DUP},
-    {"clear", OP_CLR},   {"size", OP_SIZE}, {"print", OP_PRNT},   {"exit", OP_EXIT},
-    {"write", OP_WRITE}, {"read", OP_READ}, {"null", OP_UNKNOWN},
+    {"nop", OP_NOP},     {"push", OP_PUSH}, {"pop", OP_POP},         {"mov", OP_MOV},
+    {"swap", OP_SWAP},   {"jmp", OP_JMP},   {"ret", OP_RET},         {"jne", OP_JNE},
+    {"je", OP_JE},       {"jg", OP_JG},     {"call", OP_CALL},       {"jge", OP_JGE},
+    {"jl", OP_JL},       {"jle", OP_JLE},   {"add", OP_ADD},         {"sub", OP_SUB},
+    {"cmp", OP_CMP},     {"mul", OP_MUL},   {"div", OP_DIV},         {"mod", OP_MOD},
+    {"neg", OP_NEG},     {"AND", OP_ANDB},  {"OR", OP_ORB},          {"NOT", OP_NOTB},
+    {"XOR", OP_XORB},    {"shl", OP_SHL},   {"shr", OP_SHR},         {"dup", OP_DUP},
+    {"clear", OP_CLR},   {"size", OP_SIZE}, {"print", OP_PRNT},      {"exit", OP_EXIT},
+    {"write", OP_WRITE}, {"read", OP_READ}, {"syscall", OP_SYSCALL}, {"null", OP_UNKNOWN},
 };
 
 Opcode OpcodeFromKeyword(char* keyword) {
@@ -26,75 +24,6 @@ Opcode OpcodeFromKeyword(char* keyword) {
 
     return OP_UNKNOWN; // if the keyword doesn't match any known opcode
 }
-
-#elif defined(USING_ARDUINO)
-
-Opcode OpcodeFromKeyword(char* keyword) {
-    if (strcmp(keyword, "nop") == 0)
-        return OP_NOP;
-    else if (strcmp(keyword, "push") == 0)
-        return OP_PUSH;
-    else if (strcmp(keyword, "pop") == 0)
-        return OP_POP;
-    else if (strcmp(keyword, "mov") == 0)
-        return OP_MOV;
-    else if (strcmp(keyword, "swap") == 0)
-        return OP_SWAP;
-    else if (strcmp(keyword, "jmp") == 0)
-        return OP_JMP;
-    else if (strcmp(keyword, "jne") == 0)
-        return OP_JNE;
-    else if (strcmp(keyword, "je") == 0)
-        return OP_JE;
-    else if (strcmp(keyword, "jg") == 0)
-        return OP_JG;
-    else if (strcmp(keyword, "jge") == 0)
-        return OP_JGE;
-    else if (strcmp(keyword, "jl") == 0)
-        return OP_JL;
-    else if (strcmp(keyword, "jle") == 0)
-        return OP_JLE;
-    else if (strcmp(keyword, "add") == 0)
-        return OP_ADD;
-    else if (strcmp(keyword, "sub") == 0)
-        return OP_SUB;
-    else if (strcmp(keyword, "mul") == 0)
-        return OP_MUL;
-    else if (strcmp(keyword, "div") == 0)
-        return OP_DIV;
-    else if (strcmp(keyword, "mod") == 0)
-        return OP_MOD;
-    else if (strcmp(keyword, "neg") == 0)
-        return OP_NEG;
-    else if (strcmp(keyword, "AND") == 0)
-        return OP_ANDB;
-    else if (strcmp(keyword, "OR") == 0)
-        return OP_ORB;
-    else if (strcmp(keyword, "NOT") == 0)
-        return OP_NOTB;
-    else if (strcmp(keyword, "XOR") == 0)
-        return OP_XORB;
-    else if (strcmp(keyword, "shl") == 0)
-        return OP_SHL;
-    else if (strcmp(keyword, "shr") == 0)
-        return OP_SHR;
-    else if (strcmp(keyword, "dup") == 0)
-        return OP_DUP;
-    else if (strcmp(keyword, "clear") == 0)
-        return OP_CLR;
-    else if (strcmp(keyword, "size") == 0)
-        return OP_SIZE;
-    else if (strcmp(keyword, "print") == 0)
-        return OP_PRNT;
-    else if (strcmp(keyword, "exit") == 0)
-        return OP_EXIT;
-    else if (strcmp(keyword, "write") == 0)
-        return OP_WRITE;
-    else
-        return OP_UNKNOWN;
-}
-
-#endif
 
 int LabelIndex(Lexer* lexer, char* name) {
     for (int i = 0; i < lexer->numLabels; i++) {
