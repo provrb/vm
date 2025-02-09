@@ -1,4 +1,12 @@
 _start:
     mov $2, rax
-    mov $1000, rbx
+    mov $0, rdi
+    mov $100, rsi
+    mov $4096, rdx
+    mov $64, r10
+    syscall
+    mov rax, rdi
+    mov $3, rax
+    mov $100, rsi
+    mov $16384, rdx
     syscall

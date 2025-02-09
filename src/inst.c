@@ -5,10 +5,18 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#elif defined(__linux__)
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
+
 static const RegisterMap registerMap[] = {
-    {"rax", REG_RAX}, {"rbx", REG_RBX}, {"rcx", REG_RCX}, {"rdx", REG_RDX}, {"r8", REG_R8},
-    {"r9", REG_R9},   {"r10", REG_R10}, {"r11", REG_R11}, {"r12", REG_R12}, {"r13", REG_R13},
-    {"r14", REG_R14}, {"r15", REG_R15}, {"ep", REG_EP},   {"cp", REG_CP},   {"none", REG_UNKNOWN}};
+    {"rax", REG_RAX}, {"rdi", REG_RDI},     {"rsi", REG_RSI}, {"rbx", REG_RBX}, {"rcx", REG_RCX},
+    {"rdx", REG_RDX}, {"r8", REG_R8},       {"r9", REG_R9},   {"r10", REG_R10}, {"r11", REG_R11},
+    {"r12", REG_R12}, {"r13", REG_R13},     {"r14", REG_R14}, {"r15", REG_R15}, {"ep", REG_EP},
+    {"cp", REG_CP},   {"none", REG_UNKNOWN}};
 
 static const Syscall syscalls[] = {
     SYS_EXEC, SYS_ALLOC, SYS_FREE,   SYS_REALLOC, SYS_PROTECT,
@@ -50,6 +58,7 @@ Data DATA_USING_PTR(void* ptr) {
 }
 
 Data DATA_USING_I64(long val) {
+    printf("val %d\n", val);
     Data d = {.data.i64 = val, .type = TY_I64};
     return d;
 }
@@ -613,26 +622,76 @@ void RunInstructions(Machine* machine) {
         }
 
         // argument 1 for syscall
-        Data arg1 = machine->memory[REG_RBX];
+        Data arg1 = machine->memory[REG_RDI];
+        Data arg2 = machine->memory[REG_RSI];
+        Data arg3 = machine->memory[REG_RDX];
+        Data arg4 = machine->memory[REG_R10];
+        Data arg5 = machine->memory[REG_R8];
+        Data arg6 = machine->memory[REG_R9];
 
         switch (ssn.data.i64) {
-        case SYS_ALLOC:
-            if (arg1.data.i64 == 0 || arg1.type != TY_I64)
+        case SYS_ALLOC: {
+            void* baseAddress = NULL;
+#ifdef _WIN32
+            baseAddress =
+                (arg1.data.i64 == 0)
+                    ? VirtualAlloc(NULL, arg2.data.i64, arg3.data.i64, arg4.data.i64)
+                    : VirtualAlloc(arg1.data.ptr, arg2.data.i64, arg3.data.i64, arg4.data.i64);
+#elif defined(__linux__)
+            baseAddress = (arg1.data.i64 == 0) ? mmap(NULL, arg2.data.i64, arg3.data.i64,
+                                                      arg4.data.i64, arg5.data.i64, arg6.data.i64)
+                                               : mmap(arg1.data.ptr, arg2.data.i64, arg3.data.i64,
+                                                      arg4.data.i64, arg5.data.i64, arg6.data.i64);
+#endif
+            if (baseAddress == NULL) {
+                printf("Error allocating memory\n");
+                Move(machine, DATA_USING_I64(-1), REG_RAX);
                 break;
-            Move(machine, DATA_USING_PTR(malloc(arg1.data.i64)), REG_RAX);
-            break;
+            }
+
+            // put result in rax register
+            machine->memory[REG_RAX].data.i64 = baseAddress;
+            machine->memory[REG_RAX].type = TY_I64;
+        } break;
         case SYS_CYCLES:
             Move(machine, DATA_USING_I64(machine->cycles), REG_RAX);
             break;
-        case SYS_FREE:
-            free(arg1.data.i64);
-            break;
-        case SYS_REALLOC:
-            Move(machine, DATA_USING_PTR(realloc(arg1.data.i64, machine->memory[REG_RCX].data.i64)),
-                 REG_RAX);
-            break;
+        case SYS_FREE: {
+            BOOL success = FALSE;
+#ifdef _WIN32
+            success = VirtualFree(arg1.data.i64, arg2.data.i64, arg3.data.i64);
+#elif defined(__linux__)
+            success = munmap(arg1.data.i64, arg2.data.i64);
+            if (success = -1)      // on linux munmap returns -1 for failure
+                success = FALSE;   // set to false to align with standards
+            else if (success == 0) // returns 0 on success, set to TRUE
+                success = TRUE;
+#endif
+            Move(machine, DATA_USING_I64(success), REG_RAX);
+        } break;
         case SYS_SLEEP:
+#ifdef _WIN32
+            Sleep(arg1.data.i64);
+#elif defined(__linux__)
+            sleep(arg1.data.i64);
+#endif
             break;
+        case SYS_PROTECT: {
+#ifdef _WIN32
+            PDWORD oldProtect;
+            BOOL success = VirtualProtect(arg1.data.i64, arg2.data.i64, arg3.data.i64, &oldProtect);
+            Move(machine, DATA_USING_I64(success), REG_RAX);
+            if (success == TRUE)
+                Move(machine, DATA_USING_I64(oldProtect), REG_R10);
+#elif defined(__linux__)
+            BOOL success = mprotect(arg1.data.i64, arg2.data.i64, arg3.data.i64);
+            if (success == 0)
+                success = TRUE;
+            else if (success == -1)
+                success = FALSE;
+            Move(machine, DATA_USING_I64(success), REG_RAX);
+#endif
+        } break;
         default: // -1 return value
             Move(machine, DATA_USING_I64(-1), REG_RAX);
             break;

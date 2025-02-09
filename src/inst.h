@@ -48,18 +48,20 @@ typedef enum { PORT_B, PORT_C, PORT_D } ArduinoPort;
 typedef enum {
     REG_UNKNOWN = -1,
     REG_NONE = 0x0,
-    REG_RAX = 0x1,
-    REG_RBX = 0x2,
-    REG_RCX = 0x3,
-    REG_RDX = 0x4,
-    REG_R8 = 0x5,
-    REG_R9 = 0x6,
-    REG_R10 = 0x7,
-    REG_R11 = 0x8,
-    REG_R12 = 0x9,
-    REG_R13 = 0xA,
-    REG_R14 = 0xB,
-    REG_R15 = 0xC,
+    REG_RAX = 0x1, // holds ssn and syscall return value
+    REG_RBX,
+    REG_RCX,
+    REG_RDI, // first syscall arg
+    REG_RSI, // second syscall arg
+    REG_RDX, // third syscall arg
+    REG_R8,  // fifth syscall arg
+    REG_R9,  // sixth syscall arg
+    REG_R10, // fourth syscall arg
+    REG_R11,
+    REG_R12,
+    REG_R13,
+    REG_R14,
+    REG_R15,
     REG_EP = 0xBB,
     REG_CP = 0x83, // ptr where a jmp was called to resume instructions afterwards
 } Register;
