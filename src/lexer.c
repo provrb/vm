@@ -6,15 +6,19 @@
 #include <string.h>
 
 static const OpcodeEntry opcodeTable[] = {
-    {"nop", OP_NOP},     {"push", OP_PUSH}, {"pop", OP_POP},         {"mov", OP_MOV},
-    {"swap", OP_SWAP},   {"jmp", OP_JMP},   {"ret", OP_RET},         {"jne", OP_JNE},
-    {"je", OP_JE},       {"jg", OP_JG},     {"call", OP_CALL},       {"jge", OP_JGE},
-    {"jl", OP_JL},       {"jle", OP_JLE},   {"add", OP_ADD},         {"sub", OP_SUB},
-    {"cmp", OP_CMP},     {"mul", OP_MUL},   {"div", OP_DIV},         {"mod", OP_MOD},
-    {"neg", OP_NEG},     {"AND", OP_ANDB},  {"OR", OP_ORB},          {"NOT", OP_NOTB},
-    {"XOR", OP_XORB},    {"shl", OP_SHL},   {"shr", OP_SHR},         {"dup", OP_DUP},
-    {"clear", OP_CLR},   {"size", OP_SIZE}, {"print", OP_PRNT},      {"exit", OP_EXIT},
-    {"write", OP_WRITE}, {"read", OP_READ}, {"syscall", OP_SYSCALL}, {"null", OP_UNKNOWN},
+    {"nop", OP_NOP},         {"push", OP_PUSH},       {"pop", OP_POP},
+    {"mov", OP_MOV},         {"swap", OP_SWAP},       {"jmp", OP_JMP},
+    {"ret", OP_RET},         {"jne", OP_JNE},         {"je", OP_JE},
+    {"jg", OP_JG},           {"call", OP_CALL},       {"jge", OP_JGE},
+    {"jl", OP_JL},           {"jle", OP_JLE},         {"add", OP_ADD},
+    {"sub", OP_SUB},         {"cmp", OP_CMP},         {"mul", OP_MUL},
+    {"div", OP_DIV},         {"mod", OP_MOD},         {"neg", OP_NEG},
+    {"AND", OP_ANDB},        {"OR", OP_ORB},          {"NOT", OP_NOTB},
+    {"XOR", OP_XORB},        {"shl", OP_SHL},         {"shr", OP_SHR},
+    {"dup", OP_DUP},         {"clear", OP_CLR},       {"size", OP_SIZE},
+    {"print", OP_PRNT},      {"exit", OP_EXIT},       {"write", OP_WRITE},
+    {"readstr", OP_READSTR}, {"readint", OP_READINT}, {"syscall", OP_SYSCALL},
+    {"rdrand", OP_RDRAND},   {"null", OP_UNKNOWN},
 };
 
 Opcode OpcodeFromKeyword(char* keyword) {
@@ -23,6 +27,18 @@ Opcode OpcodeFromKeyword(char* keyword) {
             return opcodeTable[i].opcode;
 
     return OP_UNKNOWN; // if the keyword doesn't match any known opcode
+}
+
+bool IsArithneticOpcode(Opcode opcode) {
+    switch (opcode) {
+    case OP_ADD:
+    case OP_DIV:
+    case OP_SUB:
+    case OP_MUL:
+    case OP_MOD:
+        return true;
+    }
+    return false;
 }
 
 int LabelIndex(Lexer* lexer, char* name) {
@@ -35,8 +51,12 @@ int LabelIndex(Lexer* lexer, char* name) {
 }
 
 char* GetLine(Lexer* lexer) {
-    long start = lexer->charIndex;
-    long end = lexer->charIndex;
+    uint64_t start = lexer->charIndex;
+    uint64_t end = lexer->charIndex;
+
+    // safety
+    if (end < start)
+        end = start;
 
     while (start > 0 && lexer->text[start - 1] != '\n')
         start--;
@@ -44,7 +64,8 @@ char* GetLine(Lexer* lexer) {
     while (lexer->text[end] != '\n' && lexer->text[end] != '\0')
         end++;
 
-    long lineLength = end - start;
+    uint64_t lineLength = end - start;
+
     char* line = malloc((lineLength + 1) * sizeof(char));
     if (line == NULL)
         return "";
@@ -60,7 +81,7 @@ char* GetLine(Lexer* lexer) {
 char* ReadFromFile(char* path, int* stringLength) {
     FILE* file = fopen(path, "rb");
     if (file == NULL) {
-        fprintf(stderr, "Error opening file. Path: %s\n", path);
+        EnvironmentError("startup failed. file i/o error. error reading source file.");
         exit(1);
     }
 
@@ -70,7 +91,7 @@ char* ReadFromFile(char* path, int* stringLength) {
 
     char* buffer = malloc(length + 1);
     if (buffer == NULL) {
-        fprintf(stderr, "Buffer allocation error for file contents.\n");
+        EnvironmentError("startup failed. cmalloc buffer allocation failed for file contents.");
         exit(1);
     }
 
@@ -109,6 +130,7 @@ int OperandsExpected(Opcode op) {
     case OP_SHL:
     case OP_SHR:
     case OP_CALL:
+    case OP_RDRAND:
         return 1;
 
     // operations that require no operands
@@ -158,6 +180,11 @@ void TypeError(Lexer* lexer, char* optMsg) {
     exit(ERR_TYPE_ERROR);
 }
 
+void EnvironmentError(const char* msg) {
+    fprintf(stderr, ".pvb environment error: %s\n", msg);
+    exit(ERR_ENV_ERROR);
+}
+
 void ToOperandType(Operand* operands, int index, char* operand) {
     if (GetRegisterFromName(operand) != REG_UNKNOWN) {
         // is register
@@ -166,9 +193,9 @@ void ToOperandType(Operand* operands, int index, char* operand) {
         return;
     }
 
-    if (IsFloat(operand) == TRUE) {
-        char* endptr;
-        double asFloat = strtod(operand, endptr);
+    if (IsFloat(operand) == true) {
+        char* endptr = NULL;
+        double asFloat = strtod(operand, &endptr);
         operands[index].data.f64 = asFloat;
         operands[index].type = TY_F64;
         return;
@@ -194,12 +221,12 @@ Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer)
     t.filepath = lexer->filePath;
     t.text = malloc(sizeof(char) * textLen);
 
-    Instruction i = {};
+    Instruction i = {0};
     i.operation = operation;
 
     switch (OperandsExpected(operation)) {
     case 2:
-        if (operation == OP_MOV || IsArithneticOpcode(operation) == TRUE || operation == OP_CMP) {
+        if (operation == OP_MOV || IsArithneticOpcode(operation) == true || operation == OP_CMP) {
             if (operands[0].type == TY_STR &&
                 ((char*)operands[0].data.ptr)[0] == LXR_CONSTANT_PREFIX) {
                 i.data.value.data.ptr = operands[0].data.ptr;
@@ -211,7 +238,7 @@ Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer)
             }
         }
 
-        if ((operation != OP_MOV || IsArithneticOpcode(operation) == FALSE ||
+        if ((operation != OP_MOV || IsArithneticOpcode(operation) == false ||
              operation != OP_CMP) &&
             (operands[0].type != TY_I64 || operands[1].type != TY_I64))
             TypeError(lexer, "expected I64 operand");
@@ -258,52 +285,39 @@ Token NewToken(Opcode operation, char* keyword, Operand* operands, Lexer* lexer)
 
     t.inst = i;
 
-    free(keyword);
     return t;
 }
 
 void PrintToken(Token* token) { printf("%06d: %s\n", token->line, token->text); }
-
-BOOL IsArithneticOpcode(Opcode opcode) {
-    switch (opcode) {
-    case OP_ADD:
-    case OP_DIV:
-    case OP_SUB:
-    case OP_MUL:
-    case OP_MOD:
-        return TRUE;
-    }
-    return FALSE;
-}
 
 char* ParseNumber(Lexer* lexer, Opcode opcode) {
     char* operand = malloc(MAX_OPERAND_LEN * sizeof(char));
     int operandIndex = 0;
 
     if (lexer->text[lexer->charIndex] == LXR_CONSTANT_PREFIX &&
-        (opcode == OP_CMP || opcode == OP_MOV || IsArithneticOpcode(opcode) == TRUE)) {
+        (opcode == OP_CMP || opcode == OP_MOV || IsArithneticOpcode(opcode) == true)) {
         operand[operandIndex++] = LXR_CONSTANT_PREFIX;
         lexer->charIndex++;
     }
 
-    BOOL dotFound = FALSE;
-    BOOL isSigned = FALSE;
+    bool dotFound = false;
+    bool isSigned = false;
 
     while (isdigit(lexer->text[lexer->charIndex]) ||
-           (isSigned == FALSE && (!isdigit(lexer->text[lexer->charIndex]) &&
+           (isSigned == false && (!isdigit(lexer->text[lexer->charIndex]) &&
                                   lexer->text[lexer->charIndex] == LXR_SIGNED_INT)) ||
-           (dotFound == FALSE && (!isdigit(lexer->text[lexer->charIndex]) &&
+           (dotFound == false && (!isdigit(lexer->text[lexer->charIndex]) &&
                                   lexer->text[lexer->charIndex] == LXR_FLOAT &&
                                   lexer->text[lexer->charIndex - 1] != LXR_FLOAT &&
                                   lexer->text[lexer->charIndex + 1] != LXR_FLOAT))) {
 
         if (!isdigit(lexer->text[lexer->charIndex]) && lexer->text[lexer->charIndex] == LXR_FLOAT) {
-            if (dotFound == FALSE)
-                dotFound = TRUE;
+            if (dotFound == false)
+                dotFound = true;
         } else if (!isdigit(lexer->text[lexer->charIndex]) &&
                    lexer->text[lexer->charIndex] == LXR_SIGNED_INT) {
-            if (isSigned == FALSE)
-                isSigned = TRUE;
+            if (isSigned == false)
+                isSigned = true;
         }
 
         operand[operandIndex] = lexer->text[lexer->charIndex];
@@ -336,10 +350,10 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
     }
 
     if (lexer->text[lexer->charIndex] == LXR_CONSTANT_PREFIX &&
-        (opcode == OP_CMP || opcode == OP_MOV || IsArithneticOpcode(opcode) == TRUE))
+        (opcode == OP_CMP || opcode == OP_MOV || IsArithneticOpcode(opcode) == true))
         return ParseNumber(lexer, opcode);
 
-    if (opcode == OP_MOV || IsArithneticOpcode(opcode) == TRUE || opcode == OP_CMP) {
+    if (opcode == OP_MOV || IsArithneticOpcode(opcode) == true || opcode == OP_CMP) {
         char* reg = malloc(12 * sizeof(char));
         int regStrIndex = 0;
         while (isdigit(lexer->text[lexer->charIndex]) || isalpha(lexer->text[lexer->charIndex])) {
@@ -374,7 +388,7 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
 
     // check if operand
     if (!isdigit(lexer->text[lexer->charIndex])) {
-        if (opcode != OP_POP && opcode != OP_MOV && opcode != OP_PUSH &&
+        if (opcode != OP_RDRAND && opcode != OP_POP && opcode != OP_MOV && opcode != OP_PUSH &&
             lexer->text[lexer->charIndex] != LXR_STR_CHAR) {
             return NULL; // Return NULL for invalid operand
         }
@@ -413,7 +427,8 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
         return string;
     }
 
-    if (((opcode == OP_PUSH || opcode == OP_POP) && !isdigit(lexer->text[lexer->charIndex]) &&
+    if (((opcode == OP_PUSH || opcode == OP_POP || opcode == OP_RDRAND) &&
+         !isdigit(lexer->text[lexer->charIndex]) &&
          lexer->text[lexer->charIndex] != LXR_SIGNED_INT)) {
         char* reg = malloc(12 * sizeof(char));
         int regStrIndex = 0;
@@ -429,24 +444,24 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
     int operandLen = 0;
     char* operand = malloc(sizeof(char) * 21);
 
-    BOOL dotFound = FALSE;
-    BOOL isSigned = FALSE;
+    bool dotFound = false;
+    bool isSigned = false;
 
     while (isdigit(lexer->text[lexer->charIndex]) ||
-           (isSigned == FALSE && (!isdigit(lexer->text[lexer->charIndex]) &&
+           (isSigned == false && (!isdigit(lexer->text[lexer->charIndex]) &&
                                   lexer->text[lexer->charIndex] == LXR_SIGNED_INT)) ||
-           (dotFound == FALSE && (!isdigit(lexer->text[lexer->charIndex]) &&
+           (dotFound == false && (!isdigit(lexer->text[lexer->charIndex]) &&
                                   lexer->text[lexer->charIndex] == LXR_FLOAT &&
                                   lexer->text[lexer->charIndex - 1] != LXR_FLOAT &&
                                   lexer->text[lexer->charIndex + 1] != LXR_FLOAT))) {
 
         if (!isdigit(lexer->text[lexer->charIndex]) && lexer->text[lexer->charIndex] == LXR_FLOAT) {
-            if (dotFound == FALSE)
-                dotFound = TRUE;
+            if (dotFound == false)
+                dotFound = true;
         } else if (!isdigit(lexer->text[lexer->charIndex]) &&
                    lexer->text[lexer->charIndex] == LXR_SIGNED_INT) {
-            if (isSigned == FALSE)
-                isSigned = TRUE;
+            if (isSigned == false)
+                isSigned = true;
         }
 
         operand[operandLen] = lexer->text[lexer->charIndex];
@@ -464,7 +479,7 @@ char* ParseOperand(Lexer* lexer, Opcode opcode) {
 }
 
 void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
-    if (opcode == OP_POP || opcode == OP_PUSH) {
+    if (opcode == OP_POP || opcode == OP_PUSH || opcode == OP_RDRAND) {
         // check if theres an operand
         char* operand = ParseOperand(lexer, opcode);
         if (operand == NULL)
@@ -501,7 +516,7 @@ void ParseOperands(Lexer* lexer, Opcode opcode, Operand* operands) {
         if (operand == NULL)
             SyntaxError(lexer, "missing operand");
 
-        if ((opcode == OP_CMP || opcode == OP_MOV || IsArithneticOpcode(opcode) == TRUE) &&
+        if ((opcode == OP_CMP || opcode == OP_MOV || IsArithneticOpcode(opcode) == true) &&
             operand[0] == LXR_CONSTANT_PREFIX) {
             operands[0].data.ptr = operand;
             operands[0].type = TY_STR;
@@ -551,22 +566,22 @@ void SkipSpaces(Lexer* lexer) {
 
 char CurrentChar(Lexer* lexer) { return lexer->text[lexer->charIndex]; }
 
-BOOL UniqueLabelName(Label* label, Lexer* lexer) {
-    for (unsigned int i = 0; i < lexer->numLabels; i++) {
+bool UniqueLabelName(Label* label, Lexer* lexer) {
+    for (uint32_t i = 0; i < lexer->numLabels; i++) {
         if (strcmp(label->name, lexer->labels[i].name) == 0)
-            return FALSE;
+            return false;
     }
-    return TRUE;
+    return true;
 }
 
 #ifdef USING_ARDUINO
 Lexer ParseTokens(char* text) {
     char* path = "";
-    unsigned int tl = strlen(text);
+    uint32_t tl = strlen(text);
 #elif !defined(USING_ARDUINO)
 Lexer ParseTokens(char* path) {
     // Open file and load its contents
-    unsigned int tl = 0;
+    uint32_t tl = 0;
     char* text = ReadFromFile(path, &tl);
 #endif
 
@@ -575,10 +590,9 @@ Lexer ParseTokens(char* path) {
         .state = PARSE, .lineNumber = 1, .filePath = path, .text = text, .textLength = tl};
 
     char keyword[MAX_KEYWORD_LEN] = {0};
-    unsigned int index = 0;
+    uint32_t index = 0;
 
     Label currLabel = {0};
-
     while (lexer.charIndex <= lexer.textLength && lexer.numTokens <= MAX_PROGRAM_SIZE) {
         if (lexer.state == SKIP_SPACES) {
             if (isblank(lexer.text[lexer.charIndex])) {
@@ -624,7 +638,7 @@ Lexer ParseTokens(char* path) {
                 if (currLabel.nameLen == 0)
                     SyntaxError(&lexer, "unnamed label");
 
-                if (UniqueLabelName(&currLabel, &lexer) == FALSE)
+                if (UniqueLabelName(&currLabel, &lexer) == false)
                     SyntaxError(&lexer, "duplicate label name");
 
                 lexer.labels[lexer.numLabels++] = currLabel;
@@ -706,6 +720,10 @@ Lexer ParseTokens(char* path) {
         Token token = NewToken(opcode, tokenKeyword, operands, &lexer);
         lexer.tokens[lexer.numTokens++] = token; // append token to array of tokens
     }
+
+    free(lexer.text);
+    lexer.text = NULL;
+    lexer.textLength = 0;
 
     return lexer;
 }

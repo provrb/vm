@@ -9,22 +9,23 @@
 
 #include "macros.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #define ARITHMETIC(operator, inst, machine, op)                                                    \
-    long a = -1;                                                                                   \
+    int64_t a = -1;                                                                                \
     double af = -1;                                                                                \
-    BOOL fp = FALSE;                                                                               \
+    bool fp = false;                                                                               \
                                                                                                    \
     if (!strcmp(GetRegisterName(inst.data.value.data.i64), "unknown")) {                           \
         RemoveChar((char*)inst.data.value.data.ptr, LXR_CONSTANT_PREFIX);                          \
         inst.data.value.type = IsFloat((char*)inst.data.value.data.ptr) ? TY_F64 : TY_I64;         \
                                                                                                    \
         if (inst.data.value.type == TY_F64)                                                        \
-            fp = TRUE;                                                                             \
+            fp = true;                                                                             \
         else                                                                                       \
-            fp = FALSE;                                                                            \
-        if (fp == FALSE)                                                                           \
+            fp = false;                                                                            \
+        if (fp == false)                                                                           \
             a = atol((char*)inst.data.value.data.ptr);                                             \
         else                                                                                       \
             af = strtod((char*)inst.data.value.data.ptr, NULL);                                    \
@@ -35,16 +36,17 @@
     Data* dest = &machine->memory[inst.data.registers.dest];                                       \
     printf("a: %d af: %f, dest: %d\n", a, af, dest->data.i64);                                     \
     if (dest->type == TY_I64)                                                                      \
-        *dest = (fp == FALSE) ? DATA_USING_I64(dest->data.i64 operator a)                          \
+        *dest = (fp == false) ? DATA_USING_I64(dest->data.i64 operator a)                          \
                               : DATA_USING_F64(dest->data.i64 operator af);                        \
     else                                                                                           \
-        *dest = DATA_USING_F64((fp == FALSE) ? (dest->data.f64 operator a)                         \
+        *dest = DATA_USING_F64((fp == false) ? (dest->data.f64 operator a)                         \
                                              : (dest->data.f64 operator af));
 
 typedef enum { PORT_B, PORT_C, PORT_D } ArduinoPort;
 
 // General purpose register indexes
 // for accessing memory in a Machine
+
 typedef enum {
     REG_UNKNOWN = -1,
     REG_NONE = 0x0,
@@ -81,6 +83,7 @@ typedef enum {
     OP_POP,
     OP_MOV,
     OP_SWAP,
+    OP_RDRAND,
 
     OP_CALL,
     OP_RET,
@@ -117,7 +120,8 @@ typedef enum {
     OP_PRNT,
 
     OP_WRITE,   // write to stdout or stderr or write pin for arduino
-    OP_READ,    // stdin or read pin for arduino
+    OP_READSTR, // stdin or read pin for arduino
+    OP_READINT,
     OP_ANWRITE, // arduino only analog write
 
     OP_SYSCALL,
@@ -156,8 +160,8 @@ typedef enum {
 } FileDescriptor;
 
 typedef union {
-    unsigned long u64;
-    long i64;
+    uint64_t u64;
+    int64_t i64;
     double f64;
     char byte;
     void* ptr;
@@ -175,24 +179,25 @@ typedef Data Operand;
 /// @param operation: opcode representing an assembly operation
 /// @param data: union containing either a value or a source and destination
 /// register to use
+#pragma pack(1)
 typedef struct {
     Opcode operation;
     struct {
         Operand value;
         struct {
-            unsigned int src;
-            unsigned int dest;
+            uint32_t src;
+            uint32_t dest;
         } registers;
     } data;
-} __attribute__((packed)) Instruction;
+} Instruction;
 
 /// Represents a label
 /// e.g _start:
 /// always starts with 'LXR_LABEL_
 typedef struct {
     char name[MAX_LABEL_LEN];
-    unsigned short nameLen;
-    long index;
+    uint16_t nameLen;
+    uint64_t index;
 } Label;
 
 typedef struct {
@@ -216,13 +221,13 @@ typedef struct {
     uint8_t EFLAGS;
 
     // has executed the first instruction
-    BOOL started;
+    bool started;
 } Machine;
 
 // Create Data structures using different available types
 Data DATA_USING_F64(double val);
-Data DATA_USING_I64(long val);
-Data DATA_USING_U64(unsigned long val);
+Data DATA_USING_I64(int64_t val);
+Data DATA_USING_U64(uint64_t val);
 Data DATA_USING_STR(char* val);
 
 #ifdef USING_ARDUINO
@@ -251,7 +256,7 @@ void Push(Machine* machine, Data value);
 /// @brief Remove the last element on the stack
 /// @param machine - machine to perform the operation on
 /// @return - the removed element
-int Pop(Machine* machine);
+int64_t Pop(Machine* machine);
 
 /// @brief Remove all elements from the stack
 /// @param machine - machine to perform the operation on

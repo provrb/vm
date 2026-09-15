@@ -1,9 +1,13 @@
 #include "inst.h"
+#include "lexer.h"
 #include "macros.h"
 
+#include <errno.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -23,12 +27,17 @@ static const Syscall syscalls[] = {
     SYS_ENV,  SYS_SLEEP, SYS_CYCLES, SYS_UNKNOWN,
 };
 
-BOOL ValidSyscall(unsigned int ssn) {
+bool ValidSyscall(uint32_t ssn) {
     for (int i = 0; syscalls[i] != SYS_UNKNOWN; i++)
         if (syscalls[i] == ssn)
-            return TRUE;
+            return true;
 
-    return FALSE;
+    return false;
+}
+
+void RuntimeError(char* msg) {
+    fprintf(stderr, "runtime error. %s\n", msg);
+    exit(1);
 }
 
 const char* GetRegisterName(Register reg) {
@@ -57,13 +66,12 @@ Data DATA_USING_PTR(void* ptr) {
     return d;
 }
 
-Data DATA_USING_I64(long val) {
-    printf("val %d\n", val);
+Data DATA_USING_I64(int64_t val) {
     Data d = {.data.i64 = val, .type = TY_I64};
     return d;
 }
 
-Data DATA_USING_U64(unsigned long val) {
+Data DATA_USING_U64(uint64_t val) {
     Data d = {.data.u64 = val, .type = TY_U64};
     return d;
 }
@@ -73,9 +81,12 @@ Data DATA_USING_STR(char* val) {
     return d;
 }
 
-void RemoveChar(char* str, char toRemove) {
+// Remove all instances of a character from a string in-place.
+// Puts the result back into `str`
+// Returns the new length of the string.
+size_t RemoveChar(char* str, char toRemove) {
     int i, j = 0;
-    int length = strlen(str);
+    size_t length = strlen(str);
 
     for (i = 0; i < length; i++) {
         if (str[i] != toRemove) {
@@ -83,20 +94,22 @@ void RemoveChar(char* str, char toRemove) {
         }
     }
     str[j] = '\0';
+
+    return strlen(str);
 }
 
 // https://stackoverflow.com/a/1997606
-BOOL IsFloat(const char* s) {
+bool IsFloat(const char* s) {
     char* ep = NULL;
     long i = strtol(s, &ep, 10);
 
     if (!*ep)
-        return FALSE;
+        return false;
 
     if (*ep == 'e' || *ep == 'E' || *ep == '.')
-        return TRUE;
+        return true;
 
-    return FALSE;
+    return false;
 }
 
 void Move(Machine* machine, Operand data, int dest) {
@@ -106,9 +119,12 @@ void Move(Machine* machine, Operand data, int dest) {
         exit(1);
     }
 
+    printf("reg dest: %s\n", regDest);
+
     if (strcmp(GetRegisterName(data.data.i64), "unknown") == 0) {
+        printf("x\n");
         RemoveChar((char*)data.data.ptr, LXR_CONSTANT_PREFIX);
-        if (IsFloat((char*)data.data.ptr) == TRUE) {
+        if (IsFloat((char*)data.data.ptr) == true) {
             char* endptr;
             double f = strtod((char*)data.data.ptr, &endptr);
             machine->memory[dest] = DATA_USING_F64(f);
@@ -138,11 +154,12 @@ Data PopData(Machine* machine) {
     return machine->stack[--machine->stackSize];
 }
 
-int Pop(Machine* machine) {
+int64_t Pop(Machine* machine) {
     if (machine->stackSize <= 0) {
         fprintf(stderr, "Stack underflow when trying to pop from stack. Aborted.\n");
         exit(1);
     }
+
     return machine->stack[--machine->stackSize].data.i64;
 }
 
@@ -150,24 +167,35 @@ void ClearStack(Machine* machine) {
     if (machine->stackSize == 0)
         return;
 
-    int tempSize = machine->stackSize; // need to make a temp copy because
-                                       // stackSize changes as we iterate
-    for (int i = 0; i < tempSize; i++) {
-        Pop(machine);
+    uint32_t tempSize = machine->stackSize; // need to make a temp copy because
+                                            // stackSize changes as we iterate
+    for (uint32_t i = 0; i < tempSize; i++) {
+        Data data = PopData(machine);
+        if (data.type == TY_STR) {
+            free(data.data.ptr);
+            data.data.ptr = NULL;
+        }
     }
 }
 
 void PrintStack(Machine* machine) {
     printf("--- Stack Start ---\n");
-    for (int i = machine->stackSize - 1; i >= 0; i--) {
-        Data x = machine->stack[i];
-        if (x.type == TY_STR)
-            printf("%s\n", (char*)x.data.ptr);
-        else if (x.type == TY_I64 || x.type == TY_U64)
-            printf("%ld\n", machine->stack[i].data.i64);
-        else if (x.type == TY_F64) {
-            printf("%f\n", machine->stack[i].data.f64);
-        }
+    for (uint32_t i = machine->stackSize; i > 0; i--) {
+        Data stackItem = machine->stack[i - 1];
+        switch (stackItem.type) {
+        case TY_STR:
+            printf("%s\n", (char*)stackItem.data.i64);
+            break;
+        case TY_I64:
+            printf("%ld\n", stackItem.data.i64);
+            break;
+        case TY_U64:
+            printf("%lu\n", stackItem.data.u64);
+            break;
+        case TY_F64:
+            printf("%f\n", stackItem.data.f64);
+            break;
+        };
     }
     printf("--- Stack End   ---\n");
 }
@@ -190,7 +218,7 @@ void Call(Machine* machine, int dest) {
 void DumpProgramToFile(Machine* machine, char* filePath) {
     FILE* file = fopen(filePath, "wb");
     if (file == NULL) {
-        fprintf(stderr, "Error opening file. Path: %s\n", filePath);
+        EnvironmentError("file i/o error dumping program to file.");
         exit(1);
     }
 
@@ -208,13 +236,13 @@ void PrintRegisterContents(Machine* machine) {
             printf("%f (f64)", data.data.f64);
             break;
         case TY_STR:
-            printf("\"%2s\"", (char*)data.data.ptr);
+            printf("\"%2s\"", (char*)data.data.i64);
             break;
         case TY_I64:
             printf("%5ld (i64)", data.data.i64);
             break;
         case TY_U64:
-            printf("%5ld (u64)", data.data.u64);
+            printf("%5lu (u64)", data.data.u64);
             break;
         default:
             printf("empty");
@@ -228,7 +256,7 @@ void PrintRegisterContents(Machine* machine) {
 Instruction* ReadProgramFromFile(Machine* machine, char* path) {
     FILE* file = fopen(path, "rb");
     if (file == NULL) {
-        fprintf(stderr, "Error opening file. Path: %s\n", path);
+        EnvironmentError("startup failed. error opening source file");
         exit(1);
     }
 
@@ -238,7 +266,8 @@ Instruction* ReadProgramFromFile(Machine* machine, char* path) {
 
     Instruction* insts = malloc(length);
     if (insts == NULL) {
-        fprintf(stderr, "Buffer allocation error for file contents.\n");
+        EnvironmentError(
+            "startup failed. cmalloc buffer allocation failed for file contents of length");
         exit(1);
     }
 
@@ -251,11 +280,6 @@ Instruction* ReadProgramFromFile(Machine* machine, char* path) {
     return insts;
 }
 
-void RuntimeError(char* msg) {
-    fprintf(stderr, "runtime error. %s\n", msg);
-    exit(1);
-}
-
 int GetEntryPoint(Machine* machine) {
     for (int i = 0; i < machine->numLabels; i++) {
         if (strcmp(LABEL_ENTRY_PNT, machine->labels[i].name) == 0)
@@ -266,6 +290,55 @@ int GetEntryPoint(Machine* machine) {
 }
 
 void Zero(Data* memory, Register reg) { memory[reg] = DATA_USING_I64(0); }
+
+char* ReadFullBuffer() {
+    // read input from stdin
+    // this solution makes it so strings longer than whats allocated on the stack for the
+    // buffer do not get truncated. e.g. let buffer[4] = {0} if string is "Hello!\n" buffer
+    // will contain "Hel"
+
+    // https://cmu-sei.github.io/secure-coding-standards/sei-cert-c-coding-standard/recommendations/input-output-fio/fio20-c/
+
+    char tmp[12] = {0};
+    tmp[0] = LXR_STR_CHAR;
+
+    char* fullString = NULL;
+    size_t fullLength = 0;
+
+    while (fgets(tmp + 1, sizeof(tmp), stdin)) {
+        size_t len = strlen(tmp);
+        if (SIZE_MAX - len - 1 < fullLength) {
+            break;
+        }
+
+        char* r_temp = realloc(fullString, fullLength + len + 1);
+        if (r_temp == NULL) {
+            break;
+        }
+
+        fullString = r_temp;
+        strcpy(fullString + fullLength, tmp);
+        fullLength += len;
+
+        if (feof(stdin) || tmp[len - 1] == '\n') {
+            break;
+        }
+    }
+
+    fullLength = RemoveChar(fullString, '\n');
+
+    char* r_temp = realloc(fullString, fullLength + 2);
+    if (!r_temp) {
+        free(r_temp);
+        RuntimeError("internal memory error while reallocating memory.");
+    }
+
+    fullString = r_temp;
+    fullString[fullLength] = LXR_STR_CHAR;
+    fullString[fullLength + 1] = '\0';
+
+    return fullString;
+}
 
 #ifdef USING_ARDUINO
 /// @brief Get the port for a pin
@@ -387,15 +460,15 @@ void OutputString(char* string, FileDescriptor fd) {
 void RunInstructions(Machine* machine) {
     machine->cycles++;
 
-    if (machine->ip == 0 && machine->started == FALSE) {
+    if (machine->ip == 0 && machine->started == false) {
         machine->ip = GetEntryPoint(machine);
-        machine->started = TRUE;
+        machine->started = true;
     }
 
     if (machine->ip >= machine->programSize)
         return;
 
-    int jump = FALSE; // if inst.operation is a successful jump
+    int jump = false; // if inst.operation is a successful jump
     Instruction inst = ((Instruction*)machine->program)[machine->ip];
 
     switch (inst.operation) {
@@ -403,14 +476,42 @@ void RunInstructions(Machine* machine) {
         machine->ip = machine->rp;
         break;
     case OP_CALL:
-        jump = TRUE;
+        jump = true;
         Call(machine, inst.data.value.data.i64);
         break;
-    case OP_READ: {
-        unsigned int fd = Pop(machine);
+    case OP_RDRAND:
+        srand(time(NULL));
+        int randNum = rand();
+
+        Register dest = GetRegisterFromName((char*)inst.data.value.data.ptr);
+        if (dest == REG_UNKNOWN)
+            break;
+
+        machine->memory[dest] = DATA_USING_I64(randNum);
+        break;
+    case OP_READINT:
+        char* asString = ReadFullBuffer();
+        RemoveChar(asString, '\"');
+
+        char* endPtr = NULL;
+
+        errno = 0;
+        long asInt = strtol(asString, &endPtr, 10);
+        if ((asInt == LONG_MAX || asInt == LONG_MIN) && errno == ERANGE) {
+            RuntimeError("input number out of range (overflow/underflow).\n");
+        }
+
+        if (endPtr == asString || *endPtr != '\0') {
+            RuntimeError("attempt to convert letters to int. no numbers found in string");
+        }
+
+        Push(machine, DATA_USING_I64(asInt));
+        break;
+    case OP_READSTR: {
+        uint32_t fd = Pop(machine);
         if (fd == FILE_INOPIN) {
 #ifdef USING_ARDUINO
-            int pin = Pop(machine);
+            int64_t pin = Pop(machine);
             int pb = PinBit(pin);
             ArduinoPort port = PinPort(pin);
             if (port == PORT_B) {
@@ -426,29 +527,21 @@ void RunInstructions(Machine* machine) {
                 RuntimeError("invalid pin");
 #endif
         } else if (fd == FILE_STDIN) {
-            // read input from stdin
-            char buffer[MAX_STRING_LEN] = {0};
-            buffer[0] = LXR_STR_CHAR;
-            if (fgets(buffer + 1, MAX_STRING_LEN, stdin) == NULL)
-                break;
-
-            RemoveChar(buffer, '\n');
-            buffer[strlen(buffer)] = LXR_STR_CHAR;
-
-            Push(machine, DATA_USING_STR(buffer));
+            char* fullString = ReadFullBuffer();
+            Push(machine, DATA_USING_STR(fullString));
         }
 
         break;
     }
     case OP_WRITE: {
-        unsigned int fd = Pop(machine);
-        int toWrite = Pop(machine);
+        uint32_t fd = (uint32_t)Pop(machine);
+        int64_t toWrite = Pop(machine);
         if (fd == FILE_STDOUT || fd == FILE_STDERR) {
-            char* asString = (char*)toWrite; // purposly seg fault if not a string
+            char* asString = (char*)toWrite; // seg fault if its not a string
             OutputString(asString, fd);
         } else if (fd == FILE_INOPIN) {
 #ifdef USING_ARDUINO
-            int state = Pop(machine);
+            int64_t state = Pop(machine);
             if (state != 0 && state != 1)
                 RuntimeError("invalid state for pin");
 
@@ -471,9 +564,9 @@ void RunInstructions(Machine* machine) {
     }
 #ifdef USING_ARDUINO
     case OP_ANWRITE: {
-        unsigned int pin = Pop(machine);
-        unsigned int value = Pop(machine);
-        unsigned int pb = PinBit(pin);
+        uint32_t pin = Pop(machine);
+        uint32_t value = Pop(machine);
+        uint32_t pb = PinBit(pin);
         ArduinoPort port = PinPort(pin);
 
         // First, set the Data direction register for the pin to output
@@ -535,20 +628,24 @@ void RunInstructions(Machine* machine) {
         if (inst.data.registers.dest == REG_NONE)
             break;
 
+        if (val.type == TY_STR) {
+            RuntimeError("attempt to move string into register.");
+        }
+
         machine->memory[inst.data.registers.dest] =
             (val.type == TY_F64) ? DATA_USING_F64(val.data.f64) : DATA_USING_I64(val.data.i64);
 
         break;
     }
     case OP_SHL: {
-        int val = Pop(machine);
+        int64_t val = Pop(machine);
 
         Push(machine, DATA_USING_I64(val << inst.data.value.data.i64));
         break;
     }
     case OP_ORB: {
-        int b = Pop(machine);
-        int a = Pop(machine);
+        int64_t b = Pop(machine);
+        int64_t a = Pop(machine);
         Push(machine, DATA_USING_I64(a | b));
         break;
     }
@@ -556,60 +653,60 @@ void RunInstructions(Machine* machine) {
         PrintStack(machine);
         break;
     case OP_EXIT:
-        printf("exiting with code %ld.\n", machine->memory[REG_RAX].data.i64);
+        // printf("exited with code %ld.\n", machine->memory[REG_RAX].data.i64);
         exit(machine->memory[REG_RAX].data.i64); // exit code saved in RAX register
     case OP_JLE:
         if (machine->EFLAGS & FLAG_ZF ||
             (machine->EFLAGS & FLAG_SF) != (machine->EFLAGS & FLAG_OF)) {
-            jump = TRUE;
+            jump = true;
             JumpTo(machine, inst.data.value.data.i64);
         }
         break;
     case OP_JL:
         if ((machine->EFLAGS & FLAG_SF) != (machine->EFLAGS & FLAG_OF)) {
-            jump = TRUE;
+            jump = true;
             JumpTo(machine, inst.data.value.data.i64);
         }
         break;
     case OP_JGE:
         if (machine->EFLAGS & FLAG_ZF ||
             (machine->EFLAGS & FLAG_SF) == (machine->EFLAGS & FLAG_OF)) {
-            jump = TRUE;
+            jump = true;
             JumpTo(machine, inst.data.value.data.i64);
         }
         break;
     case OP_JG:
         if (!(machine->EFLAGS & FLAG_ZF) &&
             (machine->EFLAGS & FLAG_SF) == (machine->EFLAGS & FLAG_OF)) {
-            jump = TRUE;
+            jump = true;
             JumpTo(machine, inst.data.value.data.i64);
         }
         break;
     case OP_JE:
         if (machine->EFLAGS & FLAG_ZF) {
-            jump = TRUE;
+            jump = true;
             JumpTo(machine, inst.data.value.data.i64);
         }
         break;
     case OP_JNE:
         if (!(machine->EFLAGS & FLAG_ZF)) {
-            jump = TRUE;
+            jump = true;
             JumpTo(machine, inst.data.value.data.i64);
         }
         break;
     case OP_JMP:
-        jump = TRUE;
+        jump = true;
         JumpTo(machine, inst.data.value.data.i64);
         break;
     case OP_NOP:
         break;
     case OP_SHR: {
-        int val = Pop(machine);
+        int64_t val = Pop(machine);
         Push(machine, DATA_USING_I64(val >> inst.data.value.data.i64));
     } break;
     case OP_SWAP: {
-        int first = Pop(machine);
-        int second = Pop(machine);
+        int64_t first = Pop(machine);
+        int64_t second = Pop(machine);
         Push(machine, DATA_USING_I64(second));
         Push(machine, DATA_USING_I64(first));
     } break;
@@ -644,28 +741,27 @@ void RunInstructions(Machine* machine) {
                                                       arg4.data.i64, arg5.data.i64, arg6.data.i64);
 #endif
             if (baseAddress == NULL) {
-                printf("Error allocating memory\n");
                 Move(machine, DATA_USING_I64(-1), REG_RAX);
                 break;
             }
 
             // put result in rax register
-            machine->memory[REG_RAX].data.i64 = baseAddress;
+            machine->memory[REG_RAX].data.i64 = (int64_t)baseAddress;
             machine->memory[REG_RAX].type = TY_I64;
         } break;
         case SYS_CYCLES:
             Move(machine, DATA_USING_I64(machine->cycles), REG_RAX);
             break;
         case SYS_FREE: {
-            BOOL success = FALSE;
+            bool success = false;
 #ifdef _WIN32
-            success = VirtualFree(arg1.data.i64, arg2.data.i64, arg3.data.i64);
+            success = VirtualFree((void*)arg1.data.i64, arg2.data.i64, arg3.data.i64);
 #elif defined(__linux__)
             success = munmap(arg1.data.i64, arg2.data.i64);
             if (success = -1)      // on linux munmap returns -1 for failure
-                success = FALSE;   // set to false to align with standards
+                success = false;   // set to false to align with standards
             else if (success == 0) // returns 0 on success, set to TRUE
-                success = TRUE;
+                success = true;
 #endif
             Move(machine, DATA_USING_I64(success), REG_RAX);
         } break;
@@ -679,16 +775,17 @@ void RunInstructions(Machine* machine) {
         case SYS_PROTECT: {
 #ifdef _WIN32
             PDWORD oldProtect;
-            BOOL success = VirtualProtect(arg1.data.i64, arg2.data.i64, arg3.data.i64, &oldProtect);
+            bool success = (bool)VirtualProtect((void*)arg1.data.i64, arg2.data.i64, arg3.data.i64,
+                                                oldProtect);
             Move(machine, DATA_USING_I64(success), REG_RAX);
-            if (success == TRUE)
-                Move(machine, DATA_USING_I64(oldProtect), REG_R10);
+            if (success == true)
+                Move(machine, DATA_USING_I64(*oldProtect), REG_R10);
 #elif defined(__linux__)
-            BOOL success = mprotect(arg1.data.i64, arg2.data.i64, arg3.data.i64);
+            bool success = mprotect(arg1.data.i64, arg2.data.i64, arg3.data.i64);
             if (success == 0)
-                success = TRUE;
+                success = true;
             else if (success == -1)
-                success = FALSE;
+                success = false;
             Move(machine, DATA_USING_I64(success), REG_RAX);
 #endif
         } break;
@@ -705,36 +802,36 @@ void RunInstructions(Machine* machine) {
         Push(machine, machine->stack[machine->stackSize - 1]);
         break;
     case OP_ANDB: {
-        int b = Pop(machine);
-        int a = Pop(machine);
+        int64_t b = Pop(machine);
+        int64_t a = Pop(machine);
         Push(machine, DATA_USING_I64(a & b));
     } break;
     case OP_XORB: {
-        int b = Pop(machine);
-        int a = Pop(machine);
+        int64_t b = Pop(machine);
+        int64_t a = Pop(machine);
         Push(machine, DATA_USING_I64(a ^ b));
     } break;
     case OP_NOTB: {
-        int a = Pop(machine);
+        int64_t a = Pop(machine);
         Push(machine, DATA_USING_I64(~a));
     } break;
     case OP_NEG: {
-        int val = Pop(machine);
+        int64_t val = Pop(machine);
         val *= -1;
         Push(machine, DATA_USING_I64(val));
     } break;
     case OP_CMP: {
         machine->EFLAGS = 0;
 
-        long a = 0;
+        int64_t a = 0;
         if (strcmp(GetRegisterName(inst.data.value.data.i64), "unknown") == 0) {
             RemoveChar((char*)inst.data.value.data.ptr, LXR_CONSTANT_PREFIX);
             a = atol((char*)inst.data.value.data.ptr);
         } else
             a = machine->memory[inst.data.value.data.i64].data.i64;
 
-        long b = machine->memory[inst.data.registers.dest].data.i64;
-        long result = b - a;
+        int64_t b = machine->memory[inst.data.registers.dest].data.i64;
+        int64_t result = b - a;
 
         // zero flag
         if (result == 0)
@@ -780,7 +877,7 @@ void RunInstructions(Machine* machine) {
         RuntimeError("\n\tIn 'RunInstructions()' : unknown instruction");
     }
 
-    if (jump == FALSE) // was not a jump instruction
+    if (jump == false) // was not a jump instruction
         machine->ip++;
 
     // run the next instruction in instruction pointer

@@ -15,6 +15,7 @@ typedef enum {
     ERR_INVALID_SYNTAX,
     ERR_RUNTIME_EXCEPTION,
     ERR_TYPE_ERROR,
+    ERR_ENV_ERROR,
 } Error;
 
 /// @brief More information about an instruction
@@ -27,7 +28,7 @@ typedef struct {
     Instruction inst;
     char* text;
     char* filepath;
-    unsigned int line;
+    uint32_t line;
 } Token;
 
 typedef enum {
@@ -41,18 +42,18 @@ typedef enum {
 } LexerState;
 
 typedef struct {
-    long charIndex;
+    uint64_t charIndex;
     char* text;
-    long textLength;
-    long lineNumber;
+    uint64_t textLength;
+    uint64_t lineNumber;
     char* filePath;
     LexerState state;
 
     Token tokens[MAX_PROGRAM_SIZE];
-    unsigned int numTokens;
+    uint64_t numTokens;
 
     Label labels[MAX_LABELS];
-    unsigned short numLabels;
+    uint32_t numLabels;
 } Lexer;
 
 /// @brief An entry to represent relationship between string and enum
@@ -77,6 +78,7 @@ char* ReadFromFile(char* path, int* stringLength);
 
 void SyntaxError(Lexer* lexer, char* optMsg);
 void TypeError(Lexer* lexer, char* optMsg);
+void EnvironmentError(const char* msg);
 
 /// Lexical analysis
 ///
@@ -153,6 +155,6 @@ int LabelIndex(Lexer* lexer, char* name);
 /// @param token - token to print information about
 void PrintToken(Token* token);
 
-BOOL IsFloat(const char* s);
+bool IsFloat(const char* s);
 
 #endif

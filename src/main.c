@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
     Lexer lexer = ParseTokens(argv[1]);
 
     Instruction* insts = malloc(lexer.numTokens * sizeof(Instruction));
-    for (unsigned int i = 0; i < lexer.numTokens; i++) {
+    for (uint64_t i = 0; i < lexer.numTokens; i++) {
         insts[i] = lexer.tokens[i].inst;
     }
 
@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
     machine->program = insts;
     machine->rp = -1;
     machine->programSize = lexer.numTokens;
-    for (int i = 0; i < lexer.numLabels; i++) {
+    for (uint32_t i = 0; i < lexer.numLabels; i++) {
         machine->labels[i] = lexer.labels[i];
     }
 

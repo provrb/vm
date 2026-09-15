@@ -96,12 +96,6 @@
 #define FLAG_ZF (1 << 2)
 #define FLAG_OF (1 << 3)
 
-// types
-typedef int BOOL;
-
-#define FALSE 0
-#define TRUE 1
-
 /// Insturction macros
 #define INST_NOP() {.operation = OP_NOP}
 
