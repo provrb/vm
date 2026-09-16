@@ -64,10 +64,6 @@ It includes:
 
 This compiles the VM and runs it against `file.pvb`.
 
-## Recruiter summary
-
-> This project is a custom virtual machine and assembly-like interpreter built in C. It parses source code, validates syntax, models a register file and stack, executes low-level instructions, and exposes a syscall interface. It demonstrates systems thinking, compiler/runtime concepts, and control-flow logic in a compact, practical project.
-
 ## Visuals
 
 ![](./docs/lexer.jpg)
